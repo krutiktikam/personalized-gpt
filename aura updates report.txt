@@ -1,0 +1,73 @@
+ Here is my "Aura Upgrade Report" for our next phase
+  of development:
+
+  1. Refining the Personality Engine (The "Double
+  Flavor" Bug)
+   * Observation: Right now, Aura is repeating
+     herself. She says things like "That’s wonderful!
+     Keep the positivity flowing" multiple times in
+     one message. This happens because the
+     PersonalityEngine appends flavor text based on
+     emotion on top of what the AI already wrote.
+   * Improvement: We should move the personality logic
+     inside the System Prompt. Instead of adding text
+     after the model generates, we tell the model: "If
+     the user is sad, be empathetic in your own
+     words." This makes her sound more natural and
+     less like a bot reading from a script.
+   * Cleanup: We need to remove those [LAZY] and
+     [SUPPORTIVE] tags from the final output so the
+     chat stays "in character."
+
+  2. Giving Aura a "Physical Form" (The Character)
+   * Observation: Aura said she wasn't a fan of a
+     physical form, but she mentioned "emoticons."
+     This is a great starting point!
+   * Improvement: Even if she’s "just an AI," having a
+     visual presence makes the connection stronger.
+       * Phase A (2D): Let's integrate Rive or Lottie
+         animations. We can have a cute, floating core
+         that pulses when she speaks and changes
+         shape/color based on her mood.
+       * Phase B (Expressions): Instead of just icons,
+         we can give her a "face" made of light (like
+         EVE from Wall-E) that can wink, blink, and
+         look around.
+
+  3. The "Big Sibling" Memory Upgrade
+   * Observation: Her memory works, but it's
+     "short-term." If you close the app and come back
+     tomorrow, she might struggle with deep details.
+   * Improvement:
+       * User Profile: We should create a special
+         "Fact File" in her database. When you say "My
+         name is Krutik" or "I like Game of Thrones,"
+         she should save that permanently in a
+         user_preferences table, not just in the chat
+         logs.
+       * Proactive Memory: She could start a chat by
+         saying, "Hey Krutik, did you ever finish that
+         episode of Game of Thrones?"
+
+  4. Aura's Voice (The "Senses")
+   * Observation: Reading text is fine, but for a
+     personal assistant on your PC/Mobile, she needs
+     to talk.
+   * Improvement:
+       * Local TTS: Use Piper or Kokoro-82M. These are
+         incredibly fast, local Text-to-Speech models
+         that sound very human.
+       * Wake Word: Eventually, we can add a "Hey
+         Aura" wake word so you don't even have to
+         type.
+
+  5. The Mobile "Home" (Flutter App)
+   * Observation: Using chat.html is okay for testing,
+     but a real assistant needs a dedicated app.
+   * Improvement: We should start building the Flutter
+     app. This will allow us to:
+       * Run Aura in the background.
+       * Have a "floating" character on your phone
+         screen.
+       * Connect to your PC Aura brain over your home
+         Wi-Fi.

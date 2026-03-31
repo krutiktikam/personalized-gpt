@@ -1,0 +1,39 @@
+# Aura AI: Industry-Ready & Portfolio Roadmap 🚀
+
+This schedule transforms Aura from a "working script" into a professional AI product.
+
+## Phase 1: Stability & Best Practices (Week 1)
+*Goal: Ensure the code is robust, readable, and professional.*
+- [ ] Day 1-2: Centralize Configuration. Move all hardcoded values and paths to `config/settings.py` using Pydantic-settings.
+- [ ] Day 3: Structured Logging. Replace `print()` statements with a proper `logging` module to track API calls and errors.
+- [ ] Day 4: Unit Testing. Write tests for `src/emotion/detect.py` and `src/utils/memory.py` using `pytest`.
+- [ ] Day 5: Error Handling. Implement global FastAPI exception handlers for better API responses.
+- [ ] GitHub Strategy: Commit daily with descriptive messages (e.g., "feat: implement pydantic-based config", "test: add unit tests for emotion detection").
+
+## Phase 2: Advanced Feature - "The Big Sibling" Memory (Week 2)
+*Goal: Implement long-term user recognition.*
+- [ ] Day 1-2: Database Schema Update. Add a `user_preferences` table to store facts (Name, Hobbies, Occupation).
+- [ ] Day 3-4: Fact Extraction. Use the LLM to identify when a user shares a fact (e.g., "I love soccer") and store it.
+- [ ] Day 5: Contextual Injection. Before generating a reply, query the "Fact File" and inject those facts into the system prompt.
+- [ ] GitHub Strategy: Commit feature-by-feature. Show the evolution of the database logic.
+
+## Phase 3: Industry Standards & DevOps (Week 3)
+*Goal: Show you can deploy and maintain real software.*
+- [ ] Day 1: Dockerization. Create a `Dockerfile` and `docker-compose.yml` to make Aura run anywhere.
+- [ ] Day 2: API Documentation. Fully document the `/chat` and `/memory` endpoints using FastAPI's built-in Swagger (OpenAPI).
+- [ ] Day 3: CI/CD. Set up a GitHub Action to run your tests automatically on every push.
+- [ ] Day 4: Frontend Polish. Clean up `chat.html` with a modern CSS framework (like Tailwind or a clean custom UI).
+- [ ] GitHub Strategy: Small, frequent commits for Docker and CI configuration.
+
+## Phase 4: Portfolio Presentation (Week 4)
+*Goal: "Sell" the project to recruiters.*
+- [ ] Day 1-2: README Overhaul. Add architectural diagrams (using Mermaid.js), high-quality screenshots, and a "Technical Challenges" section.
+- [ ] Day 3: Demo Recording. Record a 2-minute video showing Aura "remembering" a fact from a previous session.
+- [ ] Day 4: Final Cleanup. Remove any leftover debug files or temporary notes.
+- [ ] GitHub Strategy: Final "Documentation" and "UI Polish" commits to show attention to detail.
+
+## Daily Commit Checklist for GitHub "Green Squares":
+1. Morning: Pick one small task from the phase.
+2. Afternoon: Implement and test locally.
+3. Evening: Commit and Push with a clear message.
+4. Keep the "Green" streak alive to show consistency to employers!
