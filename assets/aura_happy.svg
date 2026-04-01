@@ -1,0 +1,17 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Body -->
+  <circle cx="100" cy="100" r="80" fill="#f43f5e" />
+  <!-- Glow -->
+  <circle cx="100" cy="100" r="70" fill="url(#glowGradientHappy)" opacity="0.6" />
+  <defs>
+    <radialGradient id="glowGradientHappy">
+      <stop offset="0%" stop-color="#fda4af" />
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <!-- Eyes (Happy) -->
+  <path d="M60 85 Q70 75 80 85" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" />
+  <path d="M120 85 Q130 75 140 85" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" />
+  <!-- Mouth (Smile) -->
+  <path d="M70 120 Q100 150 130 120" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" />
+</svg>
