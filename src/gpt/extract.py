@@ -32,7 +32,6 @@ def extract_facts(user_input):
         outputs = model.generate(
             **model_inputs,
             max_new_tokens=50,
-            temperature=0.1, # Low temperature for structured output
             do_sample=False,
             pad_token_id=tokenizer.pad_token_id
         )

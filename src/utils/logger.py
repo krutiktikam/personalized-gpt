@@ -23,7 +23,9 @@ def setup_logger(name: str = "aura"):
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-    # Console Handler
+    # Console Handler (Ensuring UTF-8 support for emojis)
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
@@ -34,7 +36,8 @@ def setup_logger(name: str = "aura"):
     file_handler = RotatingFileHandler(
         log_dir / "aura.log", 
         maxBytes=10*1024*1024, 
-        backupCount=5
+        backupCount=5,
+        encoding="utf-8"
     )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
