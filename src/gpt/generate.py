@@ -38,13 +38,18 @@ model = AutoModelForCausalLM.from_pretrained(
     token=HF_TOKEN
 )
 
-def generate_response(history: list, personality_config: dict):
+def generate_response(history: list, personality_config: dict, user_facts: list = None):
     # System Prompt tells the model how to act
     system_msg = (
         f"You are Aura, a quirky AI companion. "
         f"Current Mood: {personality_config.get('tone')}. "
         f"Traits: {', '.join(personality_config.get('traits', []))}."
     )
+    
+    # Inject known facts about the user
+    if user_facts:
+        facts_str = "; ".join([f"{f['category']}: {f['value']}" for f in user_facts])
+        system_msg += f" Known info about user: {facts_str}."
 
     # Prepend the system message to the history
     messages = [{"role": "system", "content": system_msg}] + history
