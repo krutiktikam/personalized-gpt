@@ -1,7 +1,7 @@
 import torch
 import json
 import re
-from src.gpt.generate import model, tokenizer
+from src.gpt.generate import model, tokenizer, load_brain
 from src.utils.logger import logger
 
 def extract_facts(user_input):
@@ -9,6 +9,7 @@ def extract_facts(user_input):
     Extracts personal facts from user input using the LLM.
     Returns a list of dicts: [{"category": "...", "value": "..."}]
     """
+    load_brain()
     system_msg = (
         "Extract personal facts (name, hobby, occupation, preference) from the user's message. "
         "Output ONLY a JSON list of objects with 'category' and 'value'. "

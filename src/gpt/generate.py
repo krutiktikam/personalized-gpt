@@ -25,20 +25,32 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_use_double_quant=True
 )
 
-logger.info(f"🚀 Loading Aura's Enhanced Brain ({model_id})...")
+# Global placeholders for the model and tokenizer
+model = None
+tokenizer = None
 
-tokenizer = AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+def load_brain():
+    global model, tokenizer
+    if model is not None:
+        return
 
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    quantization_config=bnb_config,
-    device_map="auto",
-    token=HF_TOKEN
-)
+    logger.info(f"🚀 Loading Aura's Enhanced Brain ({model_id})...")
+
+    tokenizer = AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map="auto",
+        token=HF_TOKEN
+    )
 
 def generate_response(history: list, personality_config: dict, user_facts: list = None):
+    # Ensure model is loaded before use
+    load_brain()
+
     # System Prompt tells the model how to act
     system_msg = (
         f"You are Aura, a quirky AI companion. "
