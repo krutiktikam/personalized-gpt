@@ -29,8 +29,8 @@ def test_pipeline_with_facts(mock_detect, mock_generate, mock_extract):
     # Run pipeline
     response = run_pipeline("I love soccer")
     
-    # Assertions
-    assert response["reply"] == "That's cool you like soccer!"
+    # Assertions: Use 'startswith' because personality flavoring appends text
+    assert response["reply"].startswith("That's cool you like soccer!")
     
     # Check if fact was stored
     prefs = memory.get_preferences()
