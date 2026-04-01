@@ -31,10 +31,10 @@ def setup_logger(name: str = "aura"):
     logger.addHandler(console_handler)
 
     # File Handler
-    log_dir = Path("logs")
+    log_dir = settings.LOG_FILE.parent
     log_dir.mkdir(exist_ok=True)
     file_handler = RotatingFileHandler(
-        log_dir / "aura.log", 
+        settings.LOG_FILE, 
         maxBytes=10*1024*1024, 
         backupCount=5,
         encoding="utf-8"

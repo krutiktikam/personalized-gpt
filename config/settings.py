@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
-import os
 from pathlib import Path
 
 # Base directory of the project
@@ -14,13 +13,15 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
 
     # Model Settings
-    HF_TOKEN: str = Field(default="", env="HF_TOKEN")
+    # Use default="" to ensure it's not required during CI tests
+    HF_TOKEN: str = Field(default="", validation_alias="HF_TOKEN")
     GPT_MODEL_ID: str = "Qwen/Qwen2.5-3B-Instruct"
     EMOTION_MODEL_ID: str = "bhadresh-savani/distilbert-base-uncased-emotion"
 
     # Path Settings
     PERSONALITY_CONFIG_PATH: Path = BASE_DIR / "config" / "personality.json"
     MEMORY_DB_PATH: Path = BASE_DIR / "data" / "memory.db"
+    LOG_FILE: Path = BASE_DIR / "logs" / "aura.log"
 
     model_config = SettingsConfigDict(
         env_file=".env",
