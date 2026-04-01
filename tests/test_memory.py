@@ -24,7 +24,34 @@ def test_init_db(temp_db):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chat_history'")
     assert cursor.fetchone() is not None
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_preferences'")
+    assert cursor.fetchone() is not None
     conn.close()
+
+def test_preferences(temp_db):
+    memory = ConversationMemory(db_path=temp_db)
+    memory.add_preference("hobby", "soccer")
+    memory.add_preference("hobby", "chess")
+    memory.add_preference("name", "Alice")
+    
+    # Test getting all
+    prefs = memory.get_preferences()
+    assert len(prefs) == 3
+    
+    # Test getting by category
+    hobbies = memory.get_preferences(category="hobby")
+    assert len(hobbies) == 2
+    assert any(p["value"] == "soccer" for p in hobbies)
+    assert any(p["value"] == "chess" for p in hobbies)
+    
+    # Test unique constraint
+    memory.add_preference("hobby", "soccer")
+    prefs = memory.get_preferences(category="hobby")
+    assert len(prefs) == 2
+    
+    # Test clear
+    memory.clear_preferences()
+    assert len(memory.get_preferences()) == 0
 
 def test_add_and_get_history(temp_db):
     memory = ConversationMemory(db_path=temp_db)
