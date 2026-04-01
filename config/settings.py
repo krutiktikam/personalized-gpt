@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
 
     # Model Settings
-    HF_TOKEN: str = Field(..., env="HF_TOKEN")
+    HF_TOKEN: str = Field(default="", env="HF_TOKEN")
     GPT_MODEL_ID: str = "Qwen/Qwen2.5-3B-Instruct"
     EMOTION_MODEL_ID: str = "bhadresh-savani/distilbert-base-uncased-emotion"
 
