@@ -64,3 +64,6 @@ class PersonalityEngine:
             flavor_text += " You know, I really enjoy talking with you."
 
         return f"{base_response}{flavor_text}"
+
+# Singleton instance
+engine = PersonalityEngine()
