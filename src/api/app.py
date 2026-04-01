@@ -57,11 +57,30 @@ class ChatRequest(BaseModel):
     message: str
     mode: str = "default"
 
-@app.get("/")
+@app.get("/", summary="Check if Aura AI is online")
 def home():
     return {"status": "Aura AI is online"}
 
-@app.post("/chat")
+@app.get("/memory", summary="Get user facts from long-term memory")
+async def get_memory(category: str = None):
+    try:
+        from src.utils.memory import memory
+        return memory.get_preferences(category=category)
+    except Exception as e:
+        logger.error(f"Error in memory endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/memory/clear", summary="Clear all stored user facts")
+async def clear_memory():
+    try:
+        from src.utils.memory import memory
+        memory.clear_preferences()
+        return {"status": "success", "message": "Memory cleared"}
+    except Exception as e:
+        logger.error(f"Error clearing memory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat", summary="Send a message to Aura AI")
 async def chat(request: ChatRequest):
     try:
         # Call the pipeline (returns a dict now)
