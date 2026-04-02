@@ -31,7 +31,7 @@ tokenizer = None
 
 def load_brain():
     global model, tokenizer
-    if model is not None:
+    if model is not None and tokenizer is not None:
         return
 
     logger.info(f"🚀 Loading Aura's Enhanced Brain ({model_id})...")

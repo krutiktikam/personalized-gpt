@@ -57,12 +57,27 @@ class ChatRequest(BaseModel):
     message: str
     mode: str = "default"
 
-@app.get("/", summary="Check if Aura AI is online")
+class ChatResponse(BaseModel):
+    reply: str
+    emotion: str
+    mode_used: str
+
+class MemoryItem(BaseModel):
+    category: str
+    value: str
+    timestamp: str
+
+@app.get("/", summary="Check if Aura AI is online", response_description="Simple status check")
 def home():
+    """Returns a simple JSON to confirm the API is reachable."""
     return {"status": "Aura AI is online"}
 
-@app.get("/memory", summary="Get user facts from long-term memory")
+@app.get("/memory", summary="Get user facts from long-term memory", response_model=list[MemoryItem])
 async def get_memory(category: str = None):
+    """
+    Retrieve stored facts about the user.
+    - **category**: Optional filter (e.g., 'hobby', 'name')
+    """
     try:
         from src.utils.memory import memory
         return memory.get_preferences(category=category)
@@ -72,6 +87,7 @@ async def get_memory(category: str = None):
 
 @app.delete("/memory/clear", summary="Clear all stored user facts")
 async def clear_memory():
+    """Wipes the `user_preferences` table in the database."""
     try:
         from src.utils.memory import memory
         memory.clear_preferences()
@@ -80,8 +96,14 @@ async def clear_memory():
         logger.error(f"Error clearing memory: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/chat", summary="Send a message to Aura AI")
+@app.post("/chat", summary="Send a message to Aura AI", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    """
+    Process a user message through the full pipeline:
+    1. **Emotion Detection**: Understands the user's mood.
+    2. **Fact Extraction**: Remembers new details about the user.
+    3. **Personality Shaping**: Tailors the response based on the selected mode.
+    """
     try:
         # Call the pipeline (returns a dict now)
         pipeline_output = run_pipeline(request.message, mode=request.mode)
