@@ -16,10 +16,14 @@ def extract_facts(user_input):
         return []
 
     system_msg = (
-        "Extract personal facts (name, hobby, occupation, preference) from the user's message. "
+        "Extract personal facts from the user's message. Focus on: "
+        "- 'skill': technologies or tools they know (e.g. React, Python) "
+        "- 'availability': when they are free to work (e.g. tomorrow 6pm, weekend) "
+        "- 'goal': what they want to achieve (e.g. build a portfolio, learn CSS) "
+        "- 'preference': general likes/dislikes. "
         "Output ONLY a JSON list of objects with 'category' and 'value'. "
-        "Example: [{\"category\": \"hobby\", \"value\": \"soccer\"}]. "
-        "If no facts are found, output []."
+        "Example: [{\"category\": \"skill\", \"value\": \"TypeScript\"}]. "
+        "If no relevant facts are found, output []."
     )
 
     messages = [

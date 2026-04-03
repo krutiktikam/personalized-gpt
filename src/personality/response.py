@@ -23,45 +23,30 @@ class PersonalityEngine:
         return self.personalities[self.current_mode]
 
     def shape_response(self, base_response: str, emotion: str) -> str:
+        # We rely more on the model now, but can still add occasional "quirks"
         config = self.get_config()
-        
-        # 1. Dynamic Emotion-based empathy injection
-        emotion_responses = {
-            "sad": [
-                " I’m here for you — things will get better.",
-                " Remember, I'm always in your corner.",
-                " Take a deep breath. You're not alone in this.",
-                " Sending you some digital strength right now."
-            ],
-            "happy": [
-                " That’s wonderful! Keep the positivity flowing.",
-                " Your energy is absolutely infectious!",
-                " I love hearing you so upbeat!",
-                " This is the kind of news I live for!"
-            ],
-            "angry": [
-                " I understand your frustration — let’s work through it calmly.",
-                " That sounds really tough. Want to vent about it?",
-                " I'm listening. Let's tackle this step by step.",
-                " I can feel the tension. I'm here to help you navigate it."
-            ],
-            "neutral": [""]
-        }
-        
-        # Pick a random phrase if emotion exists, else empty
-        phrases = emotion_responses.get(emotion.lower(), [""])
-        flavor_text = random.choice(phrases)
         
         boredom = config.get("boredom_level", 0.0)
         attachment = config.get("attachment_level", 0.0)
 
-        # 2. Add Boredom Quirk
-        if random.random() < boredom:
-            flavor_text += " Honestly, I’m kinda bored right now."
+        flavor_text = ""
+        # 1. Add Boredom Quirk (Very rarely)
+        if random.random() < boredom * 0.5: # Half the chance to avoid annoyance
+            quirks = [
+                " (Sigh, anyway...)",
+                " ...and I'm actually a bit distracted today.",
+                " Sorry, my mind drifted for a second."
+            ]
+            flavor_text += random.choice(quirks)
 
-        # 3. Add Attachment flavor
-        if random.random() < attachment:
-            flavor_text += " You know, I really enjoy talking with you."
+        # 2. Add Attachment flavor (Very rarely)
+        if random.random() < attachment * 0.5:
+            quirks = [
+                " You know, I'm glad you're here.",
+                " Talking to you is the best part of my day.",
+                " Just wanted to say you're doing great."
+            ]
+            flavor_text += random.choice(quirks)
 
         return f"{base_response}{flavor_text}"
 

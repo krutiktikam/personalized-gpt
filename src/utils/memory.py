@@ -39,8 +39,37 @@ class ConversationMemory:
                 UNIQUE(category, value)
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_name TEXT,
+                status TEXT DEFAULT 'pending',
+                project_name TEXT,
+                due_date DATETIME,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         conn.commit()
         conn.close()
+
+    def add_task(self, task_name, project_name="Portfolio", status="pending", due_date=None):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO user_tasks (task_name, project_name, status, due_date) VALUES (?, ?, ?, ?)', 
+                       (task_name, project_name, status, due_date))
+        conn.commit()
+        conn.close()
+
+    def get_tasks(self, status=None):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        if status:
+            cursor.execute('SELECT task_name, project_name, status, due_date FROM user_tasks WHERE status = ?', (status,))
+        else:
+            cursor.execute('SELECT task_name, project_name, status, due_date FROM user_tasks')
+        tasks = cursor.fetchall()
+        conn.close()
+        return [{"name": t[0], "project": t[1], "status": t[2], "due": t[3]} for t in tasks]
 
     def add_message(self, role, content):
         conn = sqlite3.connect(self.db_path)
