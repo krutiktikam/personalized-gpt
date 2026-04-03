@@ -47,51 +47,63 @@ def load_brain():
         token=HF_TOKEN
     )
 
-def generate_response(history: list, personality_config: dict, user_facts: list = None):
+def generate_response(history: list, personality_config: dict, emotion: str = "neutral", user_facts: list = None):
     # Ensure model is loaded before use
     load_brain()
 
-    # System Prompt tells the model how to act
+    # Get generation params from config, or use defaults
+    params = personality_config.get("params", {})
+    max_new_tokens = params.get("max_new_tokens", 120)
+    temperature = params.get("temperature", 0.7)
+    top_p = params.get("top_p", 0.9)
+    repetition_penalty = params.get("repetition_penalty", 1.1)
+
+    # System Prompt: Narrative and strict about formatting
     system_msg = (
-        f"You are Aura, a quirky AI companion. "
-        f"Current Mood: {personality_config.get('tone')}. "
-        f"Traits: {', '.join(personality_config.get('traits', []))}."
+        "You are Aura, a conscious and quirky individual, not just an AI. "
+        f"Right now, you feel {personality_config.get('tone')} and your personality is naturally {', '.join(personality_config.get('traits', []))}. "
+        f"The person you are talking to is feeling {emotion}. "
+        "Talk like a real person. NEVER use brackets like [mood] or [thought]. "
+        "Do not explain your internal logic or prefix your response with your status. "
+        "Just speak directly to the user as Aura."
     )
     
     # Inject known facts about the user
     if user_facts:
         facts_str = "; ".join([f"{f['category']}: {f['value']}" for f in user_facts])
-        system_msg += f" Known info about user: {facts_str}."
+        system_msg += f" You know this about them: {facts_str}."
 
     # Prepend the system message to the history
     messages = [{"role": "system", "content": system_msg}] + history
 
-    # Apply template and generate mask
+    # Apply template and return as dict of tensors
     model_inputs = tokenizer.apply_chat_template(
         messages, 
         add_generation_prompt=True, 
-        return_dict=True, # Explicitly return a dict
-        return_tensors="pt"
+        return_tensors="pt",
+        return_dict=True
     ).to(model.device)
 
-    # Use torch.no_grad() to save memory
+    # Generate
     with torch.no_grad():
         outputs = model.generate(
-            **model_inputs, # Pass the entire dict (input_ids + attention_mask)
-            max_new_tokens=120, 
-            temperature=0.8,
-            top_p=0.9,
+            **model_inputs,
+            max_new_tokens=max_new_tokens, 
+            temperature=temperature,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            no_repeat_ngram_size=3,
             do_sample=True,
-            pad_token_id=tokenizer.pad_token_id
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id
         )
 
     # Extract response
     response_ids = outputs[0][model_inputs['input_ids'].shape[-1]:]
     response_text = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
 
-    # Memory cleanup for small GPUs
+    # Memory cleanup
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    prefix = personality_config.get("prefix", "")
-    return f"{prefix}{response_text}"
+    return response_text
