@@ -42,7 +42,7 @@ def extract_facts(user_input):
         with torch.no_grad():
             outputs = gen.model.generate(
                 **model_inputs,
-                max_new_tokens=50,
+                max_new_tokens=100,
                 do_sample=False,
                 pad_token_id=gen.tokenizer.pad_token_id
             )
@@ -51,8 +51,8 @@ def extract_facts(user_input):
         response_text = gen.tokenizer.decode(response_ids, skip_special_tokens=True).strip()
 
         # Try to find JSON in the response
-        # Simple regex to find the first [ ] block
-        match = re.search(r'\[.*\]', response_text, re.DOTALL)
+        # Use a non-greedy regex to find the first [ ] block
+        match = re.search(r'\[.*?\]', response_text, re.DOTALL)
         if match:
             facts = json.loads(match.group(0))
             if isinstance(facts, list):

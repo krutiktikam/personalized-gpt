@@ -48,7 +48,9 @@ class PersonalityEngine:
             ]
             flavor_text += random.choice(quirks)
 
-        return f"{base_response}{flavor_text}"
+        if flavor_text:
+            return f"{base_response}\n\n{flavor_text.strip()}"
+        return base_response
 
 # Singleton instance
 engine = PersonalityEngine()

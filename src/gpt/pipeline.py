@@ -2,11 +2,20 @@ import json
 import os
 import random
 import time
+import sys
+from pathlib import Path
+
+# Add project root to sys.path if not present
+project_root = Path(__file__).resolve().parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from src.gpt.generate import generate_response
 from src.gpt.extract import extract_facts
 from src.emotion.detect import detect_emotion
 from src.personality.response import engine
 from src.utils.memory import memory
+from src.gpt.reflection import generate_proactive_suggestion
 
 from src.gpt.scheduler import plan_work_sprint
 
@@ -18,10 +27,13 @@ def run_pipeline(user_input, mode="default"):
     # 2. Extract and Store User Facts (Skills, Availability, etc.)
     facts = extract_facts(user_input)
     availability_found = None
+    new_skill_added = False
     for fact in facts:
         memory.add_preference(fact.get("category"), fact.get("value"))
         if fact.get("category") == "availability":
             availability_found = fact.get("value")
+        if fact.get("category") == "skill":
+            new_skill_added = True
     
     # 3. Add user message to memory
     memory.add_message("user", user_input)
@@ -42,14 +54,30 @@ def run_pipeline(user_input, mode="default"):
     else:
         base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts)
     
-    # 8. Apply occasional personality quirks
+    # 8. Check for Proactive Reflection (Local Decision Loop)
+    # Trigger if: 
+    # - New skill was just added
+    # - User asks about next steps/advice
+    # - OR 10% random chance if we have skills
+    reflection_triggers = ["what next", "next step", "advice", "career", "learn", "suggest"]
+    should_reflect = new_skill_added or any(word in user_input.lower() for word in reflection_triggers)
+    
+    if not should_reflect and random.random() < 0.1: # 10% chance
+        should_reflect = True
+        
+    if should_reflect:
+        reflection = generate_proactive_suggestion(user_facts, config)
+        if reflection:
+            base_res += f"\n\n[Autonomous Reflection]\n{reflection}"
+    
+    # 9. Apply occasional personality quirks
     flavored_res = engine.shape_response(base_res, emotion)
     
-    # 9. Add static prefix for the UI only
+    # 10. Add static prefix for the UI only
     prefix = config.get("prefix", "")
     final_res = f"{prefix}{flavored_res}"
     
-    # 10. Save Aura's flavored response to memory (WITHOUT the static prefix)
+    # 11. Save Aura's flavored response to memory (WITHOUT the static prefix)
     memory.add_message("assistant", flavored_res)
     
     # Return both the text and the emotion (for the character)

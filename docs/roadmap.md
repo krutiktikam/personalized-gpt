@@ -25,11 +25,12 @@ This schedule transforms Aura from a "working script" into a professional AI pro
 - [x] Day 4: Frontend Polish. Clean up `chat.html` with a modern CSS framework (like Tailwind or a clean custom UI).
 - [x] GitHub Strategy: Small, frequent commits for Docker and CI configuration.
 
-## Phase 4: Portfolio Presentation (Week 4)
-*Goal: "Sell" the project to recruiters.*
-- [x] Day 1-2: README Overhaul. Add architectural diagrams (using Mermaid.js), high-quality screenshots, and a "Technical Challenges" section.
-- [ ] Day 3: Demo Recording. Record a 2-minute video showing Aura "remembering" a fact from a previous session.
-- [x] Day 4: Final Cleanup. Remove any leftover debug files or temporary notes.
+## Phase 4: Portfolio Presentation & Future Expansion (Week 4)
+*Goal: "Sell" the project and plan the next steps.*
+- [x] Day 1-2: README Overhaul. Added architectural diagrams, screenshots, and "Technical Challenges".
+- [ ] Day 3: Demo Recording. Record a 2-minute video.
+- [x] Day 4: Final Cleanup. Removed leftover debug files.
+- [x] Day 5: Mobile Expansion Planning. Created `docs/mobile_expansion.md` for future API development.
 - [x] GitHub Strategy: Final "Documentation" and "UI Polish" commits to show attention to detail.
 
 ## Daily Commit Checklist for GitHub "Green Squares":

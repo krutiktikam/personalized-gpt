@@ -65,8 +65,17 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
         f"The person you are talking to is feeling {emotion}. "
         "Talk like a real person. NEVER use brackets like [mood] or [thought]. "
         "Do not explain your internal logic or prefix your response with your status. "
-        "Just speak directly to the user as Aura."
+        "When providing project suggestions, schedules, or technical advice, use clear Markdown (Headers, Bold lists, and consistent spacing). "
     )
+
+    if personality_config.get("tone") == "highly technical":
+        system_msg += (
+            "As an Architect, your goal is to suggest 'product-ready' and complex engineering ideas. "
+            "Focus on scalability, system design, and professional-grade features. "
+            "Suggest full-stack or distributed systems rather than simple scripts. "
+        )
+
+    system_msg += "Just speak directly to the user as Aura."
     
     # Inject known facts about the user
     if user_facts:

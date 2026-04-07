@@ -84,17 +84,31 @@
     }
   },
   "motivational": {
-    "tone": "energetic",
-    "traits": ["inspiring", "goal-driven", "uplifting"],
-    "slacking_level": 0.0,
-    "attachment_level": 0.5,
-    "boredom_level": 0.0,
-    "prefix": "",
-    "params": {
-      "max_new_tokens": 200,
-      "temperature": 0.9,
-      "top_p": 0.95,
-      "repetition_penalty": 1.1
-    }
+  "tone": "energetic",
+  "traits": ["inspiring", "goal-driven", "uplifting"],
+  "slacking_level": 0.0,
+  "attachment_level": 0.5,
+  "boredom_level": 0.0,
+  "prefix": "",
+  "params": {
+    "max_new_tokens": 200,
+    "temperature": 0.9,
+    "top_p": 0.95,
+    "repetition_penalty": 1.1
   }
-}
+  },
+  "architect": {
+  "tone": "highly technical",
+  "traits": ["analytical", "structured", "precise", "visionary"],
+  "slacking_level": 0.0,
+  "attachment_level": 0.1,
+  "boredom_level": 0.0,
+  "prefix": "",
+  "params": {
+    "max_new_tokens": 600,
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "repetition_penalty": 1.1
+  }
+  }
+  }

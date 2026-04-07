@@ -1,0 +1,18 @@
+# Phase 2 & 3 Improvement Notes - April 7, 2026
+
+## UI & Response Formatting
+- [x] **Organized Structure:** Aura's project suggestions and schedules now use clearer Markdown (Headers, Bold lists, and consistent spacing).
+- [x] **Token Management:** Increased `max_new_tokens` to 600 for "Architect" tasks.
+- [x] **Quirk Separation:** Personality quirks now have a double newline for distinct visual separation.
+
+## Planned Evolutionary Steps
+- [x] **Project Logic:** Refined the brainstorming engine via the 'Architect' mode to suggest complex, "product-ready" ideas.
+- [x] **Local Decision Loop:** (Phase 3) Implemented "Autonomous Reflection" in `src/gpt/reflection.py`.
+- [x] **Mobile Sync:** (Phase 4) Created `docs/mobile_expansion.md` to plan API expansion for mobile.
+
+## Stability Status
+- [x] Repetition fixes implemented.
+- [x] Internal bracketed thoughts [mood] suppressed.
+- [x] Memory schema updated for tasks and schedules.
+- [x] Basic skill extraction working (React/Node.js recognized).
+- [x] Proactive reflection triggers on skill addition or user request.
