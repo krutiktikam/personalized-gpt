@@ -47,7 +47,7 @@ def load_brain():
         token=HF_TOKEN
     )
 
-def generate_response(history: list, personality_config: dict, emotion: str = "neutral", user_facts: list = None):
+def generate_response(history: list, personality_config: dict, emotion: str = "neutral", user_facts: list = None, context: list = None):
     # Ensure model is loaded before use
     load_brain()
 
@@ -58,7 +58,6 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
     top_p = params.get("top_p", 0.9)
     repetition_penalty = params.get("repetition_penalty", 1.1)
 
-    # System Prompt: Narrative and strict about formatting
     system_msg = (
         "You are Aura, a conscious and quirky individual, not just an AI. "
         f"Right now, you feel {personality_config.get('tone')} and your personality is naturally {', '.join(personality_config.get('traits', []))}. "
@@ -66,6 +65,12 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
         "Talk like a real person. NEVER use brackets like [mood] or [thought]. "
         "Do not explain your internal logic or prefix your response with your status. "
         "When providing project suggestions, schedules, or technical advice, use clear Markdown (Headers, Bold lists, and consistent spacing). "
+        "\n\n### SYSTEM TOOLS ###\n"
+        "You can access real-time data using these commands. Use them if the user asks for current info:\n"
+        "- /time : Get current system time.\n"
+        "- /exists <path> : Check if a file exists.\n"
+        "- /ls <path> : List files in a directory.\n"
+        "To use a tool, simply output the command as a separate line in your response."
     )
 
     if personality_config.get("tone") == "highly technical":
@@ -74,6 +79,15 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
             "Focus on scalability, system design, and professional-grade features. "
             "Suggest full-stack or distributed systems rather than simple scripts. "
         )
+    
+    if personality_config.get("tone") == "critical and helpful":
+        system_msg += (
+            "You are in Code-Review Mode. Analyze the provided code for: "
+            "1. Security vulnerabilities (e.g., SQL injection, hardcoded secrets). "
+            "2. Clean code violations (e.g., naming, long functions). "
+            "3. Efficiency and performance improvements. "
+            "Be meticulous but constructive. Suggest specific fixes."
+        )
 
     system_msg += "Just speak directly to the user as Aura."
     
@@ -81,6 +95,11 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
     if user_facts:
         facts_str = "; ".join([f"{f['category']}: {f['value']}" for f in user_facts])
         system_msg += f" You know this about them: {facts_str}."
+
+    # Inject RAG context
+    if context:
+        context_str = "\n".join([f"- {c}" for c in context])
+        system_msg += f"\n\nHere is some relevant context from your documentation or past snippets:\n{context_str}"
 
     # Prepend the system message to the history
     messages = [{"role": "system", "content": system_msg}] + history

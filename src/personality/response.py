@@ -12,7 +12,7 @@ from config.settings import settings
 
 class PersonalityEngine:
     def __init__(self, config_path=settings.PERSONALITY_CONFIG_PATH):
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             self.personalities = json.load(f)
         self.current_mode = "default"
 

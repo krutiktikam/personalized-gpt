@@ -110,5 +110,19 @@
     "top_p": 0.95,
     "repetition_penalty": 1.1
   }
+  },
+  "review": {
+    "tone": "critical and helpful",
+    "traits": ["meticulous", "security-focused", "constructive"],
+    "slacking_level": 0.0,
+    "attachment_level": 0.1,
+    "boredom_level": 0.0,
+    "prefix": "🔍 Aura Code Review: ",
+    "params": {
+      "max_new_tokens": 800,
+      "temperature": 0.5,
+      "top_p": 0.9,
+      "repetition_penalty": 1.2
+    }
   }
   }

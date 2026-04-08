@@ -16,10 +16,25 @@ from src.emotion.detect import detect_emotion
 from src.personality.response import engine
 from src.utils.memory import memory
 from src.gpt.reflection import generate_proactive_suggestion
+from src.utils.vector_store import vector_store
+from src.gpt.tool_handler import process_tool_calls
+from src.gpt.router import route_task
 
 from src.gpt.scheduler import plan_work_sprint
 
 def run_pipeline(user_input, mode="default"):
+    # 0. Check for explicit mode overrides
+    if "/review" in user_input.lower():
+        mode = "review"
+        user_input = user_input.replace("/review", "").strip()
+    elif "/architect" in user_input.lower():
+        mode = "architect"
+        user_input = user_input.replace("/architect", "").strip()
+
+    # 0b. Route task complexity
+    task_size = route_task(user_input, mode)
+    # In a real multi-GPU setup, we'd pass task_size to generate_response
+    
     # 1. Update personality
     engine.set_personality(mode)
     config = engine.get_config()
@@ -34,6 +49,14 @@ def run_pipeline(user_input, mode="default"):
             availability_found = fact.get("value")
         if fact.get("category") == "skill":
             new_skill_added = True
+            
+    # 2b. RAG: Index code snippets if detected
+    if "```" in user_input:
+        import re
+        snippets = re.findall(r"```(?:\w+)?\n(.*?)\n```", user_input, re.DOTALL)
+        for snippet in snippets:
+            if len(snippet.strip()) > 20:
+                vector_store.add_snippet(snippet.strip(), metadata={"source": "user_chat"})
     
     # 3. Add user message to memory
     memory.add_message("user", user_input)
@@ -44,15 +67,37 @@ def run_pipeline(user_input, mode="default"):
     # 5. Get User Facts for Injection
     user_facts = memory.get_preferences()
     
+    # 5b. RAG: Query for relevant context
+    rag_context = []
+    # Query docs for general knowledge
+    rag_context.extend(vector_store.query_docs(user_input, n_results=2))
+    # Query snippets for past user code
+    rag_context.extend(vector_store.query_snippets(user_input, n_results=2))
+    
     # 6. Detect Emotion
     emotion = detect_emotion(user_input)
     
-    # 7. Generate raw AI response
-    # IF the user mentioned availability, let's trigger the scheduler
+    # 7. Generate raw AI response (Multi-turn tool loop)
     if availability_found:
         base_res = plan_work_sprint(availability_found)
     else:
-        base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts)
+        # Loop for tool use
+        max_tool_depth = 2
+        current_depth = 0
+        base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts, context=rag_context)
+        
+        while current_depth < max_tool_depth:
+            tool_results = process_tool_calls(base_res)
+            if not tool_results:
+                break
+                
+            # Add tool call and its result to history for the next turn
+            history.append({"role": "assistant", "content": base_res})
+            history.append({"role": "system", "content": f"TOOL_EXECUTION_RESULTS:\n" + "\n".join(tool_results)})
+            
+            # Generate new response with tool output
+            base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts, context=rag_context)
+            current_depth += 1
     
     # 8. Check for Proactive Reflection (Local Decision Loop)
     # Trigger if: 
