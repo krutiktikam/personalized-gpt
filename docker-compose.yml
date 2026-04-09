@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    container_name: aura_db
+    environment:
+      POSTGRES_USER: aura_user
+      POSTGRES_PASSWORD: aura_password
+      POSTGRES_DB: aura_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
   aura-ai:
     build: .
     container_name: aura_ai_service
@@ -14,4 +27,29 @@ services:
       - ./models:/app/models
     environment:
       - HF_TOKEN=${HF_TOKEN}
+      - DATABASE_URL=postgresql://aura_user:aura_password@db:5432/aura_db
+    depends_on:
+      - db
     restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: always
+
+volumes:
+  postgres_data:
+

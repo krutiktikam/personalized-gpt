@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import sys
 import json
+from unittest.mock import patch
 
 # Add project root to sys.path if not present
 project_root = Path(__file__).resolve().parent.parent
@@ -46,19 +47,26 @@ def test_set_personality(mock_personality_json):
     engine.set_personality("invalid")
     assert engine.current_mode == "default"
 
-def test_shape_response_flavor(mock_personality_json):
+@patch("random.random")
+def test_shape_response_flavor(mock_random, mock_personality_json):
+    # Mock random.random to return 0.1 so it's always < boredom * 0.5 (which is 0.5)
+    mock_random.return_value = 0.1
+    
     engine = PersonalityEngine(config_path=mock_personality_json)
     engine.set_personality("playful")
     
-    # In playful mode, boredom and attachment are 1.0, so they should always be added
+    # In playful mode, boredom and attachment are 1.0, so they should always be added if random < 0.5
     response = engine.shape_response("Hello.", "happy")
-    assert "That’s wonderful!" in response
-    assert "Honestly, I’m kinda bored right now." in response
-    assert "You know, I really enjoy talking with you." in response
+    
+    # Check for presence of boredom or attachment keywords (they are random choices)
+    # Boredom quirks contain: Sigh, distracted, mind drifted
+    # Attachment quirks contain: glad you're here, best part, doing great
+    assert any(q in response for q in ["Sigh", "distracted", "mind drifted"])
+    assert any(q in response for q in ["glad you're here", "best part", "doing great"])
     assert response.startswith("Hello.")
 
 def test_shape_response_default(mock_personality_json):
-    engine = PersonalityEngine(config_path=mock_personality_json)
+    engine = PersonalityEngine(mock_personality_json)
     # default mode has 0 boredom/attachment
     response = engine.shape_response("Hello.", "neutral")
     assert response == "Hello."

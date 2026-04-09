@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'aura-ai'
+    static_configs:
+      - targets: ['aura-ai:8000']

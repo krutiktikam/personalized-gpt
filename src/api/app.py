@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import timedelta
 from src.gpt.pipeline import run_pipeline
 import uvicorn
 import sys
@@ -16,8 +18,14 @@ from src.utils.logger import logger
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
+
+from src.api.auth import get_current_user, fake_users_db, verify_password, create_access_token
 
 app = FastAPI(title=settings.APP_NAME)
+
+# --- ADD PROMETHEUS METRICS ---
+Instrumentator().instrument(app).expose(app)
 
 # --- ADD THIS BLOCK TO FIX THE 405 ERROR ---
 app.add_middleware(
@@ -72,8 +80,23 @@ def home():
     """Returns a simple JSON to confirm the API is reachable."""
     return {"status": "Aura AI is online"}
 
+@app.post("/token", summary="Login to get access token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = fake_users_db.get(form_data.username)
+    if not user or not verify_password(form_data.password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/memory", summary="Get user facts from long-term memory", response_model=list[MemoryItem])
-async def get_memory(category: str = None):
+async def get_memory(category: str = None, current_user: dict = Depends(get_current_user)):
     """
     Retrieve stored facts about the user.
     - **category**: Optional filter (e.g., 'hobby', 'name')
@@ -86,7 +109,7 @@ async def get_memory(category: str = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/memory/clear", summary="Clear all stored user facts")
-async def clear_memory():
+async def clear_memory(current_user: dict = Depends(get_current_user)):
     """Wipes the `user_preferences` table in the database."""
     try:
         from src.utils.memory import memory
@@ -97,7 +120,7 @@ async def clear_memory():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat", summary="Send a message to Aura AI", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
     """
     Process a user message through the full pipeline:
     1. **Emotion Detection**: Understands the user's mood.
@@ -106,7 +129,7 @@ async def chat(request: ChatRequest):
     """
     try:
         # Call the pipeline (returns a dict now)
-        pipeline_output = run_pipeline(request.message, mode=request.mode)
+        pipeline_output = await run_pipeline(request.message, mode=request.mode)
 
         return {
             "reply": pipeline_output["reply"],

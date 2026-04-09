@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     API_HOST: str = "127.0.0.1"
     API_PORT: int = 8000
 
+    # JWT Settings
+    SECRET_KEY: str = "your-secret-key-here-change-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Database Settings
+    DATABASE_URL: str = "postgresql://aura_user:aura_password@localhost:5432/aura_db"
+
     # Model Settings
     # Use default="" to ensure it's not required during CI tests
     HF_TOKEN: str = Field(default="", validation_alias="HF_TOKEN")

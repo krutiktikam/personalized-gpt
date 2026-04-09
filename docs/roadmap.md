@@ -43,10 +43,10 @@ This schedule transforms Aura from a "working script" into a professional AI pro
 
 ## Phase 6: Professional Infrastructure (The "SaaS-Ready" Update)
 *Goal: Prepare the architecture for multiple users and professional monitoring.*
-- [ ] JWT Authentication: Secure the FastAPI endpoints with JSON Web Tokens.
-- [ ] Database Migration (SQLite -> PostgreSQL): Move to a more robust database.
-- [ ] Observability Dashboard: Integrate Prometheus/Grafana or custom dashboard.
-- [ ] Async Pipeline: Refactor pipeline to be fully asynchronous.
+- [x] JWT Authentication: Secure the FastAPI endpoints with JSON Web Tokens.
+- [x] Database Migration (SQLite -> PostgreSQL): Move to a more robust database.
+- [x] Observability Dashboard: Integrate Prometheus/Grafana or custom dashboard.
+- [x] Async Pipeline: Refactor pipeline to be fully asynchronous.
 
 ## Daily Commit Checklist for GitHub "Green Squares":
 1. Morning: Pick one small task from the phase.

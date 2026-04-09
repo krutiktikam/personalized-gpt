@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import sys
+import asyncio
 from pathlib import Path
 
 # Add project root to sys.path
@@ -29,7 +30,7 @@ def test_pipeline_with_scheduling(mock_detect, mock_generate, mock_extract, mock
     mock_detect.return_value = "happy"
     
     # Run pipeline
-    response = run_pipeline("I'm free tomorrow 6pm, plan my work.")
+    response = asyncio.run(run_pipeline("I'm free tomorrow 6pm, plan my work."))
     
     # Assertions
     assert response["reply"].startswith("Here is your schedule for tomorrow 6pm.")
@@ -47,7 +48,7 @@ def test_pipeline_with_facts(mock_detect, mock_generate, mock_extract, mock_plan
     mock_detect.return_value = "neutral"
     
     # Run pipeline
-    response = run_pipeline("I love soccer")
+    response = asyncio.run(run_pipeline("I love soccer"))
     
     # Assertions: Use 'startswith' because personality flavoring appends text
     assert response["reply"].startswith("That's cool you like soccer!")
@@ -71,7 +72,7 @@ def test_pipeline_no_facts(mock_generate, mock_extract, mock_plan):
     mock_extract.return_value = []
     mock_generate.return_value = "Hello!"
     
-    run_pipeline("Just saying hi")
+    asyncio.run(run_pipeline("Just saying hi"))
     
     prefs = memory.get_preferences()
     assert len(prefs) == 0

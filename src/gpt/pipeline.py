@@ -3,6 +3,7 @@ import os
 import random
 import time
 import sys
+import asyncio
 from pathlib import Path
 
 # Add project root to sys.path if not present
@@ -22,7 +23,7 @@ from src.gpt.router import route_task
 
 from src.gpt.scheduler import plan_work_sprint
 
-def run_pipeline(user_input, mode="default"):
+async def run_pipeline(user_input, mode="default"):
     # 0. Check for explicit mode overrides
     if "/review" in user_input.lower():
         mode = "review"
@@ -32,7 +33,7 @@ def run_pipeline(user_input, mode="default"):
         user_input = user_input.replace("/architect", "").strip()
 
     # 0b. Route task complexity
-    task_size = route_task(user_input, mode)
+    task_size = await asyncio.to_thread(route_task, user_input, mode)
     # In a real multi-GPU setup, we'd pass task_size to generate_response
     
     # 1. Update personality
@@ -40,11 +41,11 @@ def run_pipeline(user_input, mode="default"):
     config = engine.get_config()
     
     # 2. Extract and Store User Facts (Skills, Availability, etc.)
-    facts = extract_facts(user_input)
+    facts = await asyncio.to_thread(extract_facts, user_input)
     availability_found = None
     new_skill_added = False
     for fact in facts:
-        memory.add_preference(fact.get("category"), fact.get("value"))
+        await asyncio.to_thread(memory.add_preference, fact.get("category"), fact.get("value"))
         if fact.get("category") == "availability":
             availability_found = fact.get("value")
         if fact.get("category") == "skill":
@@ -56,38 +57,47 @@ def run_pipeline(user_input, mode="default"):
         snippets = re.findall(r"```(?:\w+)?\n(.*?)\n```", user_input, re.DOTALL)
         for snippet in snippets:
             if len(snippet.strip()) > 20:
-                vector_store.add_snippet(snippet.strip(), metadata={"source": "user_chat"})
+                await asyncio.to_thread(vector_store.add_snippet, snippet.strip(), metadata={"source": "user_chat"})
     
     # 3. Add user message to memory
-    memory.add_message("user", user_input)
+    await asyncio.to_thread(memory.add_message, "user", user_input)
     
     # 4. Get recent context
-    history = memory.get_recent_history(limit=10)
+    history = await asyncio.to_thread(memory.get_recent_history, 10)
     
     # 5. Get User Facts for Injection
-    user_facts = memory.get_preferences()
+    user_facts = await asyncio.to_thread(memory.get_preferences)
     
     # 5b. RAG: Query for relevant context
     rag_context = []
     # Query docs for general knowledge
-    rag_context.extend(vector_store.query_docs(user_input, n_results=2))
+    docs_context = await asyncio.to_thread(vector_store.query_docs, user_input, n_results=2)
+    rag_context.extend(docs_context)
     # Query snippets for past user code
-    rag_context.extend(vector_store.query_snippets(user_input, n_results=2))
+    snippets_context = await asyncio.to_thread(vector_store.query_snippets, user_input, n_results=2)
+    rag_context.extend(snippets_context)
     
     # 6. Detect Emotion
-    emotion = detect_emotion(user_input)
+    emotion = await asyncio.to_thread(detect_emotion, user_input)
     
     # 7. Generate raw AI response (Multi-turn tool loop)
     if availability_found:
-        base_res = plan_work_sprint(availability_found)
+        base_res = await asyncio.to_thread(plan_work_sprint, availability_found)
     else:
         # Loop for tool use
         max_tool_depth = 2
         current_depth = 0
-        base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts, context=rag_context)
+        base_res = await asyncio.to_thread(
+            generate_response, 
+            history=history, 
+            personality_config=config, 
+            emotion=emotion, 
+            user_facts=user_facts, 
+            context=rag_context
+        )
         
         while current_depth < max_tool_depth:
-            tool_results = process_tool_calls(base_res)
+            tool_results = await asyncio.to_thread(process_tool_calls, base_res)
             if not tool_results:
                 break
                 
@@ -96,7 +106,14 @@ def run_pipeline(user_input, mode="default"):
             history.append({"role": "system", "content": f"TOOL_EXECUTION_RESULTS:\n" + "\n".join(tool_results)})
             
             # Generate new response with tool output
-            base_res = generate_response(history, config, emotion=emotion, user_facts=user_facts, context=rag_context)
+            base_res = await asyncio.to_thread(
+            generate_response, 
+            history=history, 
+            personality_config=config, 
+            emotion=emotion, 
+            user_facts=user_facts, 
+            context=rag_context
+        )
             current_depth += 1
     
     # 8. Check for Proactive Reflection (Local Decision Loop)
@@ -111,7 +128,7 @@ def run_pipeline(user_input, mode="default"):
         should_reflect = True
         
     if should_reflect:
-        reflection = generate_proactive_suggestion(user_facts, config)
+        reflection = await asyncio.to_thread(generate_proactive_suggestion, user_facts, config)
         if reflection:
             base_res += f"\n\n[Autonomous Reflection]\n{reflection}"
     
@@ -123,7 +140,7 @@ def run_pipeline(user_input, mode="default"):
     final_res = f"{prefix}{flavored_res}"
     
     # 11. Save Aura's flavored response to memory (WITHOUT the static prefix)
-    memory.add_message("assistant", flavored_res)
+    await asyncio.to_thread(memory.add_message, "assistant", flavored_res)
     
     # Return both the text and the emotion (for the character)
     return {
@@ -133,9 +150,12 @@ def run_pipeline(user_input, mode="default"):
 
 if __name__ == "__main__":
     # Test for Skills and Scheduling
-    test_input = "I'm actually pretty good at React and Python. Tomorrow I'm free from 6 PM to 9 PM, can you help me plan a work schedule for my portfolio?"
-    print(f"\n--- TESTING AURA ARCHITECT (Phase 2) ---")
-    print(f"Input: {test_input}")
-    result = run_pipeline(test_input, mode="default")
-    print(f"\nResponse: {result['reply']}")
-    print(f"-----------------------------\n")
+    async def main():
+        test_input = "I'm actually pretty good at React and Python. Tomorrow I'm free from 6 PM to 9 PM, can you help me plan a work schedule for my portfolio?"
+        print(f"\n--- TESTING AURA ARCHITECT (Phase 2) ---")
+        print(f"Input: {test_input}")
+        result = await run_pipeline(test_input, mode="default")
+        print(f"\nResponse: {result['reply']}")
+        print(f"-----------------------------\n")
+    
+    asyncio.run(main())
