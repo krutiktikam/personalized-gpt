@@ -7,21 +7,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from config.settings import settings
+from src.utils.memory import memory
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Mock user database for demonstration purposes
-# In a real app (like when we migrate to PostgreSQL), this would be retrieved from a database.
-fake_users_db = {
-    "admin": {
-        "username": "admin",
-        "full_name": "Admin User",
-        "email": "admin@example.com",
-        "hashed_password": pwd_context.hash("secret"),
-        "disabled": False,
-    }
-}
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -53,7 +43,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
     
-    user = fake_users_db.get(username)
+    user = memory.get_user(username)
     if user is None:
         raise credentials_exception
     return user

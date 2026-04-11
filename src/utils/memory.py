@@ -21,6 +21,7 @@ class ConversationMemory:
         self._temp_history = []
         self._temp_prefs = []
         self._temp_tasks = []
+        self._temp_users = {} # username -> user_data
         
         try:
             self._init_db()
@@ -35,6 +36,17 @@ class ConversationMemory:
     def _init_db(self):
         conn = self._get_connection()
         cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                full_name TEXT,
+                email TEXT UNIQUE NOT NULL,
+                hashed_password TEXT NOT NULL,
+                disabled BOOLEAN DEFAULT FALSE,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS chat_history (
                 id SERIAL PRIMARY KEY,
@@ -120,7 +132,11 @@ class ConversationMemory:
         if not self.is_connected:
             # Check for duplicates in memory
             if not any(p["category"] == category and p["value"] == value for p in self._temp_prefs):
-                self._temp_prefs.append({"category": category, "value": value})
+                self._temp_prefs.append({
+                    "category": category, 
+                    "value": value,
+                    "timestamp": str(datetime.datetime.now())
+                })
             return
         try:
             conn = self._get_connection()
@@ -140,13 +156,13 @@ class ConversationMemory:
             conn = self._get_connection()
             cursor = conn.cursor()
             if category:
-                cursor.execute('SELECT category, value FROM user_preferences WHERE category = %s', (category,))
+                cursor.execute('SELECT category, value, timestamp FROM user_preferences WHERE category = %s', (category,))
             else:
-                cursor.execute('SELECT category, value FROM user_preferences')
+                cursor.execute('SELECT category, value, timestamp FROM user_preferences')
             
             prefs = cursor.fetchall()
             conn.close()
-            return [{"category": category, "value": value} for category, value in prefs]
+            return [{"category": category, "value": value, "timestamp": str(timestamp)} for category, value, timestamp in prefs]
         except Exception as e:
             logger.error(f"Error getting preferences: {e}")
             return []
@@ -195,5 +211,69 @@ class ConversationMemory:
         except Exception as e:
             logger.error(f"Error clearing memory: {e}")
 
+    def add_user(self, username, full_name, email, hashed_password):
+        if not self.is_connected:
+            self._temp_users[username] = {
+                "username": username,
+                "full_name": full_name,
+                "email": email,
+                "hashed_password": hashed_password,
+                "disabled": False
+            }
+            logger.info(f"✅ User {username} added to volatile storage.")
+            return True
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                'INSERT INTO users (username, full_name, email, hashed_password) VALUES (%s, %s, %s, %s)',
+                (username, full_name, email, hashed_password)
+            )
+            conn.commit()
+            conn.close()
+            logger.info(f"✅ User {username} added successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error adding user {username}: {e}")
+            return False
+
+    def get_user(self, username):
+        if not self.is_connected:
+            return self._temp_users.get(username)
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT username, full_name, email, hashed_password, disabled FROM users WHERE username = %s', (username,))
+            user = cursor.fetchone()
+            conn.close()
+            if user:
+                return {
+                    "username": user[0],
+                    "full_name": user[1],
+                    "email": user[2],
+                    "hashed_password": user[3],
+                    "disabled": user[4]
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user: {e}")
+            return None
+
+    def provision_default_user(self):
+        """Creates a default user if none exist (useful for volatile mode)."""
+        # Note: In production, use environment variables for these
+        default_username = "aura_user"
+        default_password_hash = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6s57THRe7TMp7i" # 'aura123'
+        
+        if not self.get_user(default_username):
+            self.add_user(
+                default_username, 
+                "Aura Default User", 
+                "aura@example.com", 
+                default_password_hash
+            )
+
 # Singleton instance
 memory = ConversationMemory()
+# Provision default user on startup
+memory.provision_default_user()

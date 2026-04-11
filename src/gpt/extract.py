@@ -1,28 +1,26 @@
-import torch
+import requests
 import json
 import re
-import src.gpt.generate as gen
 from src.utils.logger import logger
+from config.settings import settings
 
 def extract_facts(user_input):
     """
-    Extracts personal facts from user input using the LLM.
+    Extracts personal facts from user input using Ollama.
     Returns a list of dicts: [{"category": "...", "value": "..."}]
     """
-    gen.load_brain()
-    
-    if gen.tokenizer is None or gen.model is None:
-        logger.error("Failed to load tokenizer or model for fact extraction.")
-        return []
+    model_id = settings.GPT_MODEL_ID
+    ollama_url = f"{settings.OLLAMA_HOST}/api/chat"
 
     system_msg = (
         "Extract personal facts from the user's message. Focus on: "
+        "- 'name': The user's name (e.g., 'My name is Krutik') "
         "- 'skill': technologies or tools they know (e.g. React, Python) "
         "- 'availability': when they are free to work (e.g. tomorrow 6pm, weekend) "
         "- 'goal': what they want to achieve (e.g. build a portfolio, learn CSS) "
         "- 'preference': general likes/dislikes. "
         "Output ONLY a JSON list of objects with 'category' and 'value'. "
-        "Example: [{\"category\": \"skill\", \"value\": \"TypeScript\"}]. "
+        "Example: [{\"category\": \"name\", \"value\": \"Krutik\"}]. "
         "If no relevant facts are found, output []."
     )
 
@@ -31,27 +29,26 @@ def extract_facts(user_input):
         {"role": "user", "content": user_input}
     ]
 
+    payload = {
+        "model": model_id,
+        "messages": messages,
+        "stream": False,
+        "options": {
+            "temperature": 0.0,  # Zero temperature for deterministic JSON output
+            "num_predict": 100
+        }
+    }
+
     try:
-        model_inputs = gen.tokenizer.apply_chat_template(
-            messages,
-            add_generation_prompt=True,
-            return_dict=True,
-            return_tensors="pt"
-        ).to(gen.model.device)
-
-        with torch.no_grad():
-            outputs = gen.model.generate(
-                **model_inputs,
-                max_new_tokens=100,
-                do_sample=False,
-                pad_token_id=gen.tokenizer.pad_token_id
-            )
-
-        response_ids = outputs[0][model_inputs['input_ids'].shape[-1]:]
-        response_text = gen.tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+        response = requests.post(ollama_url, json=payload, timeout=45)
+        response.raise_for_status()
+        result = response.json()
+        response_text = result['message']['content'].strip()
+        
+        # DEBUG: Log the raw extraction output
+        logger.info(f"🔍 RAW EXTRACTION: {response_text}")
 
         # Try to find JSON in the response
-        # Use a non-greedy regex to find the first [ ] block
         match = re.search(r'\[.*?\]', response_text, re.DOTALL)
         if match:
             facts = json.loads(match.group(0))
@@ -59,11 +56,5 @@ def extract_facts(user_input):
                 return facts
         return []
     except Exception as e:
-        logger.error(f"Error during fact extraction: {e}")
+        logger.error(f"❌ Fact Extraction Error: {e}")
         return []
-
-if __name__ == "__main__":
-    # Test (requires model to be loaded)
-    test_input = "My name is Krutik and I love playing soccer."
-    print(f"Input: {test_input}")
-    print(f"Extracted: {extract_facts(test_input)}")

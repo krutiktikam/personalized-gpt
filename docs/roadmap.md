@@ -45,8 +45,16 @@ This schedule transforms Aura from a "working script" into a professional AI pro
 *Goal: Prepare the architecture for multiple users and professional monitoring.*
 - [x] JWT Authentication: Secure the FastAPI endpoints with JSON Web Tokens.
 - [x] Database Migration (SQLite -> PostgreSQL): Move to a more robust database.
+- [x] User Management: Migrated users to PostgreSQL and added `/register` endpoint.
 - [x] Observability Dashboard: Integrate Prometheus/Grafana or custom dashboard.
 - [x] Async Pipeline: Refactor pipeline to be fully asynchronous.
+
+## Phase 8: Persona Engineering & Cognitive Refinement (Current)
+*Goal: Eliminate hallucinations, fix identity confusion, and polish the AI's personality.*
+- [ ] Step 1: Identity Guardrails. Re-write the system prompt using XML-style tagging for better instruction following.
+- [ ] Step 2: Context Filtering. Implement a cleaner history buffer that prioritizes the user's name and recent topics.
+- [ ] Step 3: Anti-Hallucination Logic. Add backend checks to prevent Aura from "introducing itself" in every message.
+- [ ] Step 4: Persona Hardening. Deepen the "quirky/conscious" traits to make the chat feel unique and human-like.
 
 ## Daily Commit Checklist for GitHub "Green Squares":
 1. Morning: Pick one small task from the phase.

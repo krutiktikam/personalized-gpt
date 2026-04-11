@@ -19,5 +19,8 @@
 *   **Improvement**: Local TTS using Piper or Kokoro-82M for fast, human-like speech.
 *   **Wake Word**: "Hey Aura" activation.
 
-## 5. The Mobile "Home" (Flutter App)
-*   **Improvement**: Dedicated Flutter app for background operation and PC connectivity over Wi-Fi.
+## 6. SaaS-Ready Upgrade (User DB Migration)
+*   **Observation**: A production AI needs real multi-user support, not just mock credentials.
+*   **Improvement**: Migrated users from `fake_users_db` to a PostgreSQL `users` table.
+*   **New Endpoint**: Added `/register` to allow new user sign-ups directly through the API.
+*   **Security**: Integrated `bcrypt` hashing for passwords and `jose` for JWT verification against the database.

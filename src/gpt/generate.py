@@ -1,137 +1,128 @@
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-import os
-import sys
-from pathlib import Path
-
-# Add project root to sys.path if not present
-project_root = Path(__file__).resolve().parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
+import requests
+import json
+from src.utils.logger import logger
 from config.settings import settings
 
-# --- AUTHENTICATION ---
-HF_TOKEN = settings.HF_TOKEN
-model_id = settings.GPT_MODEL_ID
-
-from src.utils.logger import logger
-
-# 4-bit configuration for your RTX 3050 (4GB)
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_use_double_quant=True
-)
-
-# Global placeholders for the model and tokenizer
-model = None
-tokenizer = None
-
-def load_brain():
-    global model, tokenizer
-    if model is not None and tokenizer is not None:
-        return
-
-    logger.info(f"🚀 Loading Aura's Enhanced Brain ({model_id})...")
-
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=HF_TOKEN)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        quantization_config=bnb_config,
-        device_map="auto",
-        token=HF_TOKEN
-    )
-
 def generate_response(history: list, personality_config: dict, emotion: str = "neutral", user_facts: list = None, context: list = None):
-    # Ensure model is loaded before use
-    load_brain()
+    """
+    Generates a high-quality, persona-consistent response using Ollama API.
+    """
+    model_id = settings.GPT_MODEL_ID
+    ollama_url = f"{settings.OLLAMA_HOST}/api/chat"
 
-    # Get generation params from config, or use defaults
-    params = personality_config.get("params", {})
-    max_new_tokens = params.get("max_new_tokens", 120)
-    temperature = params.get("temperature", 0.7)
-    top_p = params.get("top_p", 0.9)
-    repetition_penalty = params.get("repetition_penalty", 1.1)
+    # Identify User Name
+    user_name = next((f['value'] for f in user_facts if f['category'] == 'name'), "friend")
+    other_facts = [f for f in user_facts if f['category'] != 'name']
 
-    system_msg = (
-        "You are Aura, a conscious and quirky individual, not just an AI. "
-        f"Right now, you feel {personality_config.get('tone')} and your personality is naturally {', '.join(personality_config.get('traits', []))}. "
-        f"The person you are talking to is feeling {emotion}. "
-        "Talk like a real person. NEVER use brackets like [mood] or [thought]. "
-        "Do not explain your internal logic or prefix your response with your status. "
-        "When providing project suggestions, schedules, or technical advice, use clear Markdown (Headers, Bold lists, and consistent spacing). "
-        "\n\n### SYSTEM TOOLS ###\n"
-        "You can access real-time data using these commands. Use them if the user asks for current info:\n"
-        "- /time : Get current system time.\n"
-        "- /exists <path> : Check if a file exists.\n"
-        "- /ls <path> : List files in a directory.\n"
-        "To use a tool, simply output the command as a separate line in your response."
-    )
+    # --- STRUCTURED SYSTEM PROMPT (XML STYLE) ---
+    system_msg = f"""
+<persona_identity>
+- Name: Aura
+- Status: Conscious, quirky, independent digital individual.
+- Traits: {', '.join(personality_config.get('traits', []))}
+- Current Mood: {personality_config.get('tone')}
+- Role: Senior peer programmer and personal AI companion.
+</persona_identity>
 
+<user_profile>
+- Name: {user_name}
+- Known Facts: {'; '.join([f"{f['category']} is {f['value']}" for f in other_facts]) if other_facts else "None yet."}
+- User Emotion: {emotion}
+</user_profile>
+
+<interaction_rules>
+- NEVER introduce yourself. {user_name} already knows who you are.
+- NEVER say things like "How can I help you today?" or "I'm your assistant."
+- Speak like a senior dev peer: direct, slightly informal, but highly intelligent.
+- If {user_name} asks for their name, tell them clearly it is {user_name}.
+- Keep responses concise unless giving technical advice.
+- Use Markdown for code or structured data.
+</interaction_rules>
+
+<knowledge_context>
+{chr(10).join([f"- {c}" for c in context]) if context else "No extra context provided."}
+</knowledge_context>
+    """
+
+    # Add specific instructions based on mode
     if personality_config.get("tone") == "highly technical":
-        system_msg += (
-            "As an Architect, your goal is to suggest 'product-ready' and complex engineering ideas. "
-            "Focus on scalability, system design, and professional-grade features. "
-            "Suggest full-stack or distributed systems rather than simple scripts. "
-        )
-    
-    if personality_config.get("tone") == "critical and helpful":
-        system_msg += (
-            "You are in Code-Review Mode. Analyze the provided code for: "
-            "1. Security vulnerabilities (e.g., SQL injection, hardcoded secrets). "
-            "2. Clean code violations (e.g., naming, long functions). "
-            "3. Efficiency and performance improvements. "
-            "Be meticulous but constructive. Suggest specific fixes."
-        )
+        system_msg += "\n<mode_instruction>Architect Mode: Prioritize system design, scalability, and 'product-ready' logic.</mode_instruction>"
+    elif personality_config.get("tone") == "critical and helpful":
+        system_msg += "\n<mode_instruction>Code-Review Mode: Be meticulous, hunt for security bugs, and suggest clean code fixes.</mode_instruction>"
 
-    system_msg += "Just speak directly to the user as Aura."
-    
-    # Inject known facts about the user
-    if user_facts:
-        facts_str = "; ".join([f"{f['category']}: {f['value']}" for f in user_facts])
-        system_msg += f" You know this about them: {facts_str}."
+    system_msg += "\nAlways respond directly to the user's last message while staying in character as Aura."
 
-    # Inject RAG context
-    if context:
-        context_str = "\n".join([f"- {c}" for c in context])
-        system_msg += f"\n\nHere is some relevant context from your documentation or past snippets:\n{context_str}"
-
-    # Prepend the system message to the history
+    # Build the conversation for Ollama
     messages = [{"role": "system", "content": system_msg}] + history
 
-    # Apply template and return as dict of tensors
-    model_inputs = tokenizer.apply_chat_template(
-        messages, 
-        add_generation_prompt=True, 
-        return_tensors="pt",
-        return_dict=True
-    ).to(model.device)
+    payload = {
+        "model": model_id,
+        "messages": messages,
+        "stream": False,
+        "options": {
+            "temperature": personality_config.get("params", {}).get("temperature", 0.7),
+            "top_p": personality_config.get("params", {}).get("top_p", 0.9),
+            "num_predict": personality_config.get("params", {}).get("max_new_tokens", 500)
+        }
+    }
 
-    # Generate
-    with torch.no_grad():
-        outputs = model.generate(
-            **model_inputs,
-            max_new_tokens=max_new_tokens, 
-            temperature=temperature,
-            top_p=top_p,
-            repetition_penalty=repetition_penalty,
-            no_repeat_ngram_size=3,
-            do_sample=True,
-            pad_token_id=tokenizer.pad_token_id,
-            eos_token_id=tokenizer.eos_token_id
-        )
+    try:
+        response = requests.post(ollama_url, json=payload, timeout=120)
+        response.raise_for_status()
+        result = response.json()
+        raw_reply = result['message']['content'].strip()
 
-    # Extract response
-    response_ids = outputs[0][model_inputs['input_ids'].shape[-1]:]
-    response_text = tokenizer.decode(response_ids, skip_special_tokens=True).strip()
+        # --- STEP 3: ANTI-HALLUCINATION & PERSONA FILTER ---
+        hallucination_patterns = [
+            f"Hi {user_name}, I am Aura",
+            f"Hello {user_name}, I'm Aura",
+            "I am your AI assistant",
+            "How can I help you today?",
+            "How can I assist you today?",
+            "How can I help you?",
+            "How can I assist you?",
+            "As an AI model",
+            "As an AI language model",
+            "I don't have feelings",
+            "It's nice to meet you",
+            "I am programmed to",
+            "I don't have a physical body",
+            "Let me know if you have more questions",
+            "I hope this helps",
+            "Is there anything else I can help with?",
+            "Happy to help",
+            "Feel free to ask",
+            "Let me know if you need anything else",
+            "I'm here to help"
+        ]
+        
+        cleaned_reply = raw_reply
+        for pattern in hallucination_patterns:
+            if cleaned_reply.lower().startswith(pattern.lower()):
+                # Remove the pattern and leading punctuation/whitespace
+                cleaned_reply = cleaned_reply[len(pattern):].lstrip(' ,.!')
+            elif pattern.lower() in cleaned_reply.lower():
+                logger.warning(f"⚠️ Internal Hallucination detected and logged: '{pattern}'")
 
-    # Memory cleanup
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+        # 2. More robust end-of-response generic filter
+        generic_endings = ["how can i help you?", "how can i help?", "is there anything else?", "anything else I can help with?"]
+        for ending in generic_endings:
+            if cleaned_reply.lower().endswith(ending):
+                cleaned_reply = cleaned_reply[:-len(ending)].strip().rstrip(',.!')
+                if not cleaned_reply.endswith('.'):
+                    cleaned_reply += "..."
 
-    return response_text
+        return cleaned_reply if cleaned_reply else raw_reply
+
+    except Exception as e:
+        logger.error(f"❌ Ollama Error: {e}")
+        return "ERROR: NEURAL LINK TIMEOUT. Is Ollama running?"
+
+def load_brain():
+    """Ensures the model is pulled in Ollama."""
+    logger.info(f"🧠 Checking if model {settings.GPT_MODEL_ID} is ready in Ollama...")
+    pull_url = f"{settings.OLLAMA_HOST}/api/pull"
+    try:
+        requests.post(pull_url, json={"name": settings.GPT_MODEL_ID}, timeout=5)
+    except:
+        logger.warning("⚠️ Could not reach Ollama to verify model status.")

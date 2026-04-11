@@ -41,7 +41,10 @@ async def run_pipeline(user_input, mode="default"):
     config = engine.get_config()
     
     # 2. Extract and Store User Facts (Skills, Availability, etc.)
-    facts = await asyncio.to_thread(extract_facts, user_input)
+    # We strip code blocks for extraction to prevent hallucinations/false availability triggers
+    import re
+    clean_input_for_extraction = re.sub(r"```.*?```", "", user_input, flags=re.DOTALL)
+    facts = await asyncio.to_thread(extract_facts, clean_input_for_extraction)
     availability_found = None
     new_skill_added = False
     for fact in facts:
@@ -62,8 +65,8 @@ async def run_pipeline(user_input, mode="default"):
     # 3. Add user message to memory
     await asyncio.to_thread(memory.add_message, "user", user_input)
     
-    # 4. Get recent context
-    history = await asyncio.to_thread(memory.get_recent_history, 10)
+    # 4. Get recent context - Reduce to 6 to keep it focused
+    history = await asyncio.to_thread(memory.get_recent_history, 6)
     
     # 5. Get User Facts for Injection
     user_facts = await asyncio.to_thread(memory.get_preferences)
@@ -130,7 +133,9 @@ async def run_pipeline(user_input, mode="default"):
     if should_reflect:
         reflection = await asyncio.to_thread(generate_proactive_suggestion, user_facts, config)
         if reflection:
-            base_res += f"\n\n[Autonomous Reflection]\n{reflection}"
+            print(f"DEBUG: Integrating reflection: {reflection[:50]}...")
+            # Integrate reflection naturally without the bot-like header
+            base_res += f"\n\nThinking ahead... {reflection}"
     
     # 9. Apply occasional personality quirks
     flavored_res = engine.shape_response(base_res, emotion)

@@ -20,37 +20,58 @@ class PersonalityEngine:
         self.current_mode = name if name in self.personalities else "default"
 
     def get_config(self):
-        return self.personalities[self.current_mode]
+        config = self.personalities[self.current_mode]
+        print(f"DEBUG: Current Mode: {self.current_mode}")
+        print(f"DEBUG: Selected Config Prefix: '{config.get('prefix')}'")
+        return config
 
     def shape_response(self, base_response: str, emotion: str) -> str:
-        # We rely more on the model now, but can still add occasional "quirks"
-        config = self.get_config()
+        """
+        Final safety pass and persona hardening. 
+        Removes any robotic headers or AI-assistant hallucinations.
+        """
+        # 1. Remove robotic headers
+        cleaned = base_response.replace("[Autonomous Reflection]", "").strip()
         
-        boredom = config.get("boredom_level", 0.0)
-        attachment = config.get("attachment_level", 0.0)
+        # 2. Hard-filter generic AI phrases (The "Kill-Switch")
+        hallucination_patterns = [
+            "I am Aura, your AI assistant",
+            "I am your AI assistant",
+            "How can I help you today?",
+            "How can I assist you today?",
+            "How can I help you?",
+            "How can I assist you?",
+            "As an AI model",
+            "As an AI language model",
+            "I don't have feelings",
+            "I am programmed to",
+            "I don't have a physical body",
+            "Let me know if you have more questions",
+            "I hope this helps",
+            "Is there anything else I can help with?",
+            "Happy to help",
+            "Feel free to ask",
+            "Let me know if you need anything else",
+            "I'm here to help"
+        ]
+        
+        for pattern in hallucination_patterns:
+            if cleaned.lower().startswith(pattern.lower()):
+                cleaned = cleaned[len(pattern):].lstrip(' ,.!')
+            elif pattern.lower() in cleaned.lower():
+                # If it's in the middle, we just remove it
+                import re
+                cleaned = re.sub(re.escape(pattern), "", cleaned, flags=re.IGNORECASE).strip()
 
-        flavor_text = ""
-        # 1. Add Boredom Quirk (Very rarely)
-        if random.random() < boredom * 0.5: # Half the chance to avoid annoyance
-            quirks = [
-                " (Sigh, anyway...)",
-                " ...and I'm actually a bit distracted today.",
-                " Sorry, my mind drifted for a second."
-            ]
-            flavor_text += random.choice(quirks)
+        # 3. Clean up generic endings
+        generic_endings = ["how can i help you?", "how can i help?", "is there anything else?", "anything else I can help with?"]
+        for ending in generic_endings:
+            if cleaned.lower().endswith(ending):
+                cleaned = cleaned[:-len(ending)].strip().rstrip(',.!')
+                if not cleaned.endswith('.'):
+                    cleaned += "..."
 
-        # 2. Add Attachment flavor (Very rarely)
-        if random.random() < attachment * 0.5:
-            quirks = [
-                " You know, I'm glad you're here.",
-                " Talking to you is the best part of my day.",
-                " Just wanted to say you're doing great."
-            ]
-            flavor_text += random.choice(quirks)
-
-        if flavor_text:
-            return f"{base_response}\n\n{flavor_text.strip()}"
-        return base_response
+        return cleaned.strip()
 
 # Singleton instance
 engine = PersonalityEngine()

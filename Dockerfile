@@ -5,6 +5,7 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV HF_HOME /app/models/hf_cache
+ENV PYTHONPATH /app
 
 # Set work directory
 WORKDIR /app
@@ -30,4 +31,4 @@ RUN mkdir -p logs data models/hf_cache
 EXPOSE 8000
 
 # Command to run the application
-CMD ["python", "src/api/app.py"]
+CMD ["python", "-m", "src.api.app"]

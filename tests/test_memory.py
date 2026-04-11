@@ -30,7 +30,7 @@ def memory():
     # Clear tables before each test
     conn = mem._get_connection()
     cursor = conn.cursor()
-    cursor.execute("TRUNCATE chat_history, user_preferences, user_tasks RESTART IDENTITY CASCADE")
+    cursor.execute("TRUNCATE users, chat_history, user_preferences, user_tasks RESTART IDENTITY CASCADE")
     conn.commit()
     conn.close()
     return mem
@@ -38,6 +38,8 @@ def memory():
 def test_init_db(memory):
     conn = memory._get_connection()
     cursor = conn.cursor()
+    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='users'")
+    assert cursor.fetchone() is not None
     cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='chat_history'")
     assert cursor.fetchone() is not None
     cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='user_preferences'")
@@ -94,3 +96,24 @@ def test_clear_memory(memory):
     
     history = memory.get_recent_history()
     assert len(history) == 0
+
+def test_user_management(memory):
+    # Test adding a user
+    success = memory.add_user("testuser", "Test User", "test@example.com", "hashed_pass")
+    assert success is True
+    
+    # Test getting the user
+    user = memory.get_user("testuser")
+    assert user is not None
+    assert user["username"] == "testuser"
+    assert user["full_name"] == "Test User"
+    assert user["email"] == "test@example.com"
+    assert user["hashed_password"] == "hashed_pass"
+    assert user["disabled"] is False
+    
+    # Test non-existent user
+    assert memory.get_user("nonexistent") is None
+    
+    # Test adding duplicate user (should fail or log error)
+    success = memory.add_user("testuser", "Test User 2", "test2@example.com", "hashed_pass")
+    assert success is False

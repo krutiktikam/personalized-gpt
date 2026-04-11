@@ -1,0 +1,9 @@
+models/
+data/
+logs/
+.git/
+__pycache__/
+*.pyc
+.env
+aura-ui/node_modules/
+node_modules/

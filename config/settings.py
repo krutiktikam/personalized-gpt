@@ -18,13 +18,21 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database Settings
-    DATABASE_URL: str = "postgresql://aura_user:aura_password@localhost:5432/aura_db"
+    PSQL_USER: str = "aura_user"
+    PSQL_PASSWORD: str = "aura_password"
+    PSQL_HOST: str = "localhost"
+    PSQL_PORT: int = 5432
+    PSQL_DB: str = "aura_db"
+
+    @property
+    def DATABASE_URL(self) -> str:
+        return f"postgresql://{self.PSQL_USER}:{self.PSQL_PASSWORD}@{self.PSQL_HOST}:{self.PSQL_PORT}/{self.PSQL_DB}"
 
     # Model Settings
-    # Use default="" to ensure it's not required during CI tests
     HF_TOKEN: str = Field(default="", validation_alias="HF_TOKEN")
-    GPT_MODEL_ID: str = "Qwen/Qwen2.5-3B-Instruct"
+    GPT_MODEL_ID: str = "qwen2.5:1.5b" 
     EMOTION_MODEL_ID: str = "bhadresh-savani/distilbert-base-uncased-emotion"
+    OLLAMA_HOST: str = "http://localhost:11434"
 
     # Path Settings
     PERSONALITY_CONFIG_PATH: Path = BASE_DIR / "config" / "personality.json"
@@ -39,3 +47,8 @@ class Settings(BaseSettings):
 
 # Instantiate settings
 settings = Settings()
+
+print(f"DEBUG: Loaded settings from {__file__}")
+print(f"DEBUG: OLLAMA_HOST is {settings.OLLAMA_HOST}")
+print(f"DEBUG: GPT_MODEL_ID is {settings.GPT_MODEL_ID}")
+print(f"DEBUG: API_PORT is {settings.API_PORT}")
