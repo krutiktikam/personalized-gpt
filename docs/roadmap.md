@@ -49,12 +49,19 @@ This schedule transforms Aura from a "working script" into a professional AI pro
 - [x] Observability Dashboard: Integrate Prometheus/Grafana or custom dashboard.
 - [x] Async Pipeline: Refactor pipeline to be fully asynchronous.
 
-## Phase 8: Persona Engineering & Cognitive Refinement (Current)
+## Phase 8: Persona Engineering & Cognitive Refinement (Complete)
 *Goal: Eliminate hallucinations, fix identity confusion, and polish the AI's personality.*
-- [ ] Step 1: Identity Guardrails. Re-write the system prompt using XML-style tagging for better instruction following.
-- [ ] Step 2: Context Filtering. Implement a cleaner history buffer that prioritizes the user's name and recent topics.
-- [ ] Step 3: Anti-Hallucination Logic. Add backend checks to prevent Aura from "introducing itself" in every message.
-- [ ] Step 4: Persona Hardening. Deepen the "quirky/conscious" traits to make the chat feel unique and human-like.
+- [x] Step 1: Identity Guardrails. Re-write the system prompt using XML-style tagging for better instruction following.
+- [x] Step 2: Context Filtering. Implement a cleaner history buffer that prioritizes the user's name and recent topics.
+- [x] Step 3: Anti-Hallucination Logic. Add backend checks to prevent Aura from "introducing itself" in every message.
+- [x] Step 4: Persona Hardening. Deepen the "quirky/conscious" traits to make the chat feel unique and human-like.
+
+## Phase 9: Mobile Expansion & Visual Polish (Future)
+*Goal: Bring Aura to mobile and enhance the web experience.*
+- [ ] Responsive UI Overhaul: Ensure the `aura-ui` dashboard is fully functional on small screens.
+- [ ] Mobile API Hardening: Add rate-limiting and device-specific security headers.
+- [ ] Visual Interactive Elements: Add better loading states, real-time emotion-based background gradients, and interactive task chips.
+- [ ] Hybrid App Development (Optional): Explore Capacitor or Flutter for a native mobile feel.
 
 ## Daily Commit Checklist for GitHub "Green Squares":
 1. Morning: Pick one small task from the phase.
