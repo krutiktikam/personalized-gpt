@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -7,6 +7,11 @@ import uvicorn
 import sys
 import time
 from pathlib import Path
+
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Add project root to sys.path if not present
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -25,7 +30,11 @@ from src.api.auth import get_current_user, verify_password, create_access_token,
 from src.utils.memory import memory
 from src.gpt.generate import load_brain
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title=settings.APP_NAME)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app_start_time = time.time()
 
 @app.on_event("startup")
@@ -42,7 +51,18 @@ async def startup_event():
 # --- ADD PROMETHEUS METRICS ---
 Instrumentator().instrument(app).expose(app)
 
-# --- ADD THIS BLOCK TO FIX THE 405 ERROR ---
+# --- SECURITY MIDDLEWARE ---
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    return response
+
+# --- CORS MIDDLEWARE ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows your HTML file to connect
@@ -137,7 +157,8 @@ async def register(user: UserCreate):
     }
 
 @app.post("/token", summary="Login to get access token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+@limiter.limit("5/minute")
+async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     user = memory.get_user(form_data.username)
     if not user or not verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(
@@ -214,7 +235,8 @@ async def add_task(task: TaskCreate, current_user: dict = Depends(get_current_us
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat", summary="Send a message to Aura AI", response_model=ChatResponse)
-async def chat(request: ChatRequest, current_user: dict = Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def chat(request: Request, chat_req: ChatRequest, current_user: dict = Depends(get_current_user)):
     """
     Process a user message through the full pipeline:
     1. **Emotion Detection**: Understands the user's mood.
@@ -223,12 +245,12 @@ async def chat(request: ChatRequest, current_user: dict = Depends(get_current_us
     """
     try:
         # Call the pipeline (returns a dict now)
-        pipeline_output = await run_pipeline(request.message, mode=request.mode)
+        pipeline_output = await run_pipeline(chat_req.message, mode=chat_req.mode)
 
         return {
             "reply": pipeline_output["reply"],
             "emotion": pipeline_output["emotion"],
-            "mode_used": request.mode
+            "mode_used": chat_req.mode
         }
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}", exc_info=True)

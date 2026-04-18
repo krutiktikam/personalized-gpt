@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageSquare, 
@@ -7,7 +7,9 @@ import {
   LogOut, 
   Settings,
   ChevronRight,
-  ListTodo
+  ListTodo,
+  Menu,
+  X
 } from 'lucide-react';
 import { AuraAvatar } from '../components/AuraAvatar';
 import { ChatWindow } from '../components/ChatWindow';
@@ -24,23 +26,63 @@ type Tab = 'chat' | 'memory' | 'stats' | 'tasks';
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<Tab>('chat');
   const [auraEmotion, setAuraEmotion] = useState('neutral');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const sidebarItems = [
-    { id: 'chat', label: 'Chat Terminal', icon: MessageSquare },
-    { id: 'tasks', label: 'Task Planner', icon: ListTodo },
-    { id: 'memory', label: 'Neural Memory', icon: BrainCircuit },
-    { id: 'stats', label: 'System Stats', icon: Activity },
-  ];
+  // Close sidebar when clicking a link on mobile
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const getEmotionColor = () => {
+    switch (auraEmotion) {
+      case 'happy': return 'from-neon-green/20';
+      case 'sad': return 'from-blue-500/20';
+      case 'angry': return 'from-neon-red/20';
+      case 'architect': return 'from-neon-magenta/20';
+      case 'review': return 'from-neon-orange/20';
+      default: return 'from-neon-cyan/10';
+    }
+  };
 
   return (
-    <div className="flex h-screen w-full bg-cyber-black overflow-hidden text-white font-sans">
+    <div className="flex h-screen w-full bg-cyber-black overflow-hidden text-white font-sans relative">
+      {/* Background Dynamic Glow */}
+      <div className={`fixed inset-0 bg-gradient-to-br ${getEmotionColor()} to-transparent transition-colors duration-1000 pointer-events-none z-0`} />
+      
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-cyber-black/80 backdrop-blur-sm z-30 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-72 bg-white/5 border-r border-white/10 flex flex-col p-6 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="w-8 h-8 rounded bg-neon-cyan flex items-center justify-center">
-            <div className="w-4 h-4 border-2 border-cyber-black rounded-sm" />
+      <aside className={`
+        fixed inset-y-0 left-0 w-72 bg-white/5 border-r border-white/10 flex flex-col p-6 z-40 backdrop-blur-xl transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-neon-cyan flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-cyber-black rounded-sm" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight">AURA CORE</h2>
           </div>
-          <h2 className="text-xl font-bold tracking-tight">AURA CORE</h2>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 hover:bg-white/5 rounded-lg lg:hidden"
+          >
+            <X className="w-5 h-5 text-white/60" />
+          </button>
         </div>
 
         <nav className="flex-1 space-y-2">
@@ -50,7 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id as Tab)}
+                onClick={() => handleTabChange(item.id as Tab)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
                   isActive 
                     ? 'bg-neon-cyan text-cyber-black font-semibold shadow-[0_0_15px_rgba(0,243,255,0.3)]' 
@@ -81,26 +123,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative flex flex-col overflow-hidden">
+      <main className="flex-1 relative flex flex-col overflow-hidden w-full">
         {/* Background Aura Visualization */}
-        <div className="absolute top-0 right-0 p-12 z-0 opacity-50">
+        <div className="absolute top-0 right-0 p-6 lg:p-12 z-0 opacity-30 lg:opacity-50 pointer-events-none">
           <AuraAvatar emotion={auraEmotion} />
         </div>
 
         {/* Tab Header */}
-        <header className="px-10 py-8 border-b border-white/5 bg-cyber-black/50 backdrop-blur-md z-10 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold uppercase tracking-widest text-white/90">
-              {activeTab === 'chat' && 'Live Chat Terminal'}
-              {activeTab === 'tasks' && 'Strategic Task Grid'}
-              {activeTab === 'memory' && 'Neural Memory Explorer'}
-              {activeTab === 'stats' && 'Internal System Health'}
-            </h1>
-            <p className="text-neon-cyan/60 text-xs mt-1 font-mono">STATUS: STABLE // CONNECTION: ENCRYPTED</p>
+        <header className="px-6 lg:px-10 py-6 lg:py-8 border-b border-white/5 bg-cyber-black/50 backdrop-blur-md z-20 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 hover:bg-white/5 rounded-lg lg:hidden"
+            >
+              <Menu className="w-6 h-6 text-neon-cyan" />
+            </button>
+            <div>
+              <h1 className="text-lg lg:text-3xl font-bold uppercase tracking-widest text-white/90 line-clamp-1">
+                {activeTab === 'chat' && 'Live Chat Terminal'}
+                {activeTab === 'tasks' && 'Strategic Task Grid'}
+                {activeTab === 'memory' && 'Neural Memory Explorer'}
+                {activeTab === 'stats' && 'Internal System Health'}
+              </h1>
+              <p className="text-neon-cyan/60 text-[10px] lg:text-xs mt-0.5 lg:mt-1 font-mono uppercase">
+                STATUS: STABLE // CONNECTION: ENCRYPTED
+              </p>
+            </div>
           </div>
           
-          <div className="flex gap-4">
-            {/* Quick status indicators */}
+          <div className="hidden sm:flex gap-4">
             <div className="px-3 py-1 rounded-full bg-neon-cyan/10 border border-neon-cyan/30 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
               <span className="text-[10px] text-neon-cyan font-bold">API ONLINE</span>
@@ -109,14 +160,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         </header>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-auto p-10 z-10 relative">
+        <div className="flex-1 overflow-auto p-4 lg:p-10 z-10 relative">
           <AnimatePresence mode="wait">
             {activeTab === 'chat' && (
               <motion.div
                 key="chat"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 className="h-full"
               >
                 <ChatWindow onEmotionChange={setAuraEmotion} />
@@ -126,9 +177,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             {activeTab === 'tasks' && (
               <motion.div
                 key="tasks"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 className="h-full"
               >
                 <TaskExplorer />
@@ -138,9 +189,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             {activeTab === 'memory' && (
               <motion.div
                 key="memory"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 className="h-full"
               >
                 <MemoryExplorer />
@@ -150,9 +201,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             {activeTab === 'stats' && (
               <motion.div
                 key="stats"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 className="h-full"
               >
                 <StatsDashboard />

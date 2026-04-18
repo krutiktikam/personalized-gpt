@@ -5,11 +5,12 @@ interface AuraAvatarProps {
 }
 
 const emotionStyles: Record<string, { color: string; scale: number; speed: number }> = {
-  happy: { color: 'rgba(0, 243, 255, 0.8)', scale: 1.1, speed: 2 },
-  sad: { color: 'rgba(188, 19, 254, 0.6)', scale: 0.9, speed: 4 },
+  happy: { color: 'rgba(57, 255, 20, 0.8)', scale: 1.1, speed: 2 },
+  sad: { color: 'rgba(59, 130, 246, 0.6)', scale: 0.9, speed: 4 },
+  angry: { color: 'rgba(255, 49, 49, 0.8)', scale: 1.2, speed: 1 },
   neutral: { color: 'rgba(0, 243, 255, 0.4)', scale: 1.0, speed: 3 },
   architect: { color: 'rgba(255, 0, 255, 0.8)', scale: 1.2, speed: 1.5 },
-  review: { color: 'rgba(255, 100, 0, 0.8)', scale: 1.05, speed: 1.2 },
+  review: { color: 'rgba(255, 94, 0, 0.8)', scale: 1.05, speed: 1.2 },
 };
 
 export const AuraAvatar = ({ emotion }: AuraAvatarProps) => {
