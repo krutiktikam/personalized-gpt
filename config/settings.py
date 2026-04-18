@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str = Field(default="", validation_alias="HF_TOKEN")
     GPT_MODEL_ID: str = "qwen2.5:1.5b" 
     EMOTION_MODEL_ID: str = "bhadresh-savani/distilbert-base-uncased-emotion"
-    OLLAMA_HOST: str = "http://localhost:11434"
+    OLLAMA_HOST: str = Field(default="http://localhost:11434", validation_alias="OLLAMA_HOST")
 
     # Path Settings
     PERSONALITY_CONFIG_PATH: Path = BASE_DIR / "config" / "personality.json"

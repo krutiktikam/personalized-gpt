@@ -1,0 +1,7 @@
+data/
+logs/
+node_modules/
+dist/
+.gemini/
+__pycache__/
+*.sqlite3

@@ -1,27 +1,28 @@
 # Aura AI: Your Emotionally Aware Companion 🤖✨
 
-Aura is a personalized AI assistant designed to be more than just a chatbot. She remembers your preferences, understands your mood, and adapts her personality to match yours. Built with industry-standard practices, Aura is a showcase of modular AI architecture and persistent long-term memory.
+Aura is a personalized AI assistant designed to be more than just a chatbot. She remembers your preferences, understands your mood, and adapts her personality to match yours. Built with industry-standard practices, Aura is a showcase of modular AI architecture, persistent long-term memory, and autonomous agency.
 
 ---
 
 ## 🚀 Key Features
 
 - **🧠 "Big Sibling" Long-Term Memory**: Aura doesn't just remember the current chat; she extracts facts (hobbies, names, preferences) and stores them in a permanent "Fact File" to personalize future interactions.
-- **🎭 Dynamic Personality Engine**: Switch between multiple modes (Supportive, Playful, Sarcastic, etc.) that affect not just the AI's logic, but its emotional "flavoring."
-- **🌈 Emotion Awareness**: Real-time sentiment analysis allows Aura to react visually and textually to your mood.
-- **📱 Modern Web Interface**: A sleek, Tailwind CSS-powered "glassmorphism" UI with interactive emotional feedback.
-- **🐳 Production Ready**: Fully Dockerized with CI/CD integration and automated testing.
+- **🎭 Dynamic Personality Engine**: Switch between multiple modes (Architect, Code Review, etc.) that affect not just the AI's logic, but its emotional "flavoring."
+- **🌈 Emotion-Reactive Visuals**: Real-time sentiment analysis allows Aura's background and avatar to react visually to your mood.
+- **🛠️ Autonomous Agency (Tool Use)**: Aura can now execute actions on your system, such as creating folders, managing files, and checking system status within a secure workspace.
+- **📱 Responsive Dashboard**: A modern, mobile-friendly React interface with glassmorphism design and real-time system monitoring.
+- **🛡️ Hardened Security**: Implementation of JWT authentication, rate limiting (SlowAPI), and secure HTTP headers.
 
 ---
 
 ## 🛠️ Technical Stack
 
 - **Backend**: FastAPI (Python 3.13)
-- **LLM Core**: Qwen/Qwen2.5-3B-Instruct (Quantized via BitsAndBytes for 4GB GPUs)
-- **Database**: SQLite (Persistent history & user preferences)
-- **Frontend**: HTML5/Tailwind CSS/JS (Glassmorphism design)
-- **DevOps**: Docker, Docker Compose, GitHub Actions (CI/CD)
-- **ML Libraries**: Transformers, Torch, Peft, Scikit-learn
+- **LLM Engine**: Ollama (Running Qwen 2.5 local inference)
+- **Database**: PostgreSQL (Users/History) & ChromaDB (Vector RAG)
+- **Frontend**: React 19 (TypeScript) + Tailwind CSS 4 + Framer Motion
+- **DevOps**: Docker, Docker Compose, Prometheus Monitoring
+- **ML Libraries**: Transformers, Sentence-Transformers, Scikit-learn
 
 ---
 
@@ -29,15 +30,18 @@ Aura is a personalized AI assistant designed to be more than just a chatbot. She
 
 ```mermaid
 graph TD
-    User((User)) -->|Message| API[FastAPI Backend]
+    User((User)) -->|HTTPS| API[FastAPI Backend]
     API -->|1. Detect Emotion| Emotion[Emotion Module]
-    API -->|2. Extract Facts| Extract[Fact Extraction]
-    Extract -->|Store/Retrieve| DB[(SQLite Memory)]
-    API -->|3. Context Injection| LLM[GPT Core - Qwen2.5]
-    DB -->|Past History + Facts| LLM
-    LLM -->|Raw Response| Personality[Personality Engine]
-    Personality -->|4. Flavoring| Final[Final Response]
-    Final -->|JSON| User
+    API -->|2. Tool Router| Router[Intent Dispatcher]
+    Router -->|Execute| Tools[Tool Handler - File/Sys]
+    API -->|3. Extract Facts| Extract[Fact Extraction]
+    Extract -->|Store| DB[(PostgreSQL)]
+    API -->|4. RAG Query| Vector[(ChromaDB)]
+    API -->|5. Context Injection| LLM[Ollama - Qwen2.5]
+    DB -->|History + Facts| LLM
+    Vector -->|Relevant Snippets| LLM
+    Tools -->|Action Results| LLM
+    LLM -->|Response| User
 ```
 
 ---
@@ -46,8 +50,8 @@ graph TD
 
 ### Prerequisites
 - Python 3.13+
-- CUDA-compatible GPU (Recommended 4GB+ VRAM for local LLM)
-- Hugging Face Token
+- [Ollama](https://ollama.com/) (Local LLM Runtime)
+- PostgreSQL (or use Docker)
 
 ### Local Setup
 1. **Clone the repository**:
@@ -59,46 +63,45 @@ graph TD
    ```bash
    pip install -r requirements.txt
    ```
-3. **Configuration**:
-   Create a `.env` file in the root directory:
-   ```env
-   HF_TOKEN=your_huggingface_token
+3. **Download the Model**:
+   ```bash
+   ollama pull qwen2.5:1.5b
    ```
 4. **Run the API**:
    ```bash
    python -m src.api.app
    ```
-5. **Open the UI**:
-   Open `chat.html` in your favorite browser.
-
-### Docker Setup
-```bash
-docker-compose up --build
-```
+5. **Start the UI**:
+   ```bash
+   cd aura-ui
+   npm install
+   npm run dev
+   ```
 
 ---
 
 ## 🧪 Technical Challenges & Solutions
 
-### 1. Memory Management on Small GPUs
-**Challenge**: Running a 3B-parameter model on a 4GB RTX 3050.
-**Solution**: Implemented `BitsAndBytes` 4-bit quantization (NF4) and `torch.cuda.empty_cache()` calls to keep the VRAM footprint under 3.5GB.
+### 1. The "Hallucination" Loop
+**Challenge**: Smaller LLMs (1.5B) often hallucinate terminal commands (e.g., typing `mkdir`) instead of calling actual Python functions.
+**Solution**: Implemented a **Two-Pass Agency System**. The first pass strictly identifies tool intent, and the second pass handles the conversational response using the real tool output.
 
-### 2. The "Double Flavor" Bug
-**Challenge**: Early versions had the AI sounding repetitive because personality text was appended *after* the model had already generated a response.
-**Solution**: Moved personality traits into the **System Prompt** for "natural" personality, while keeping the external engine for "reactive" emotional flavor.
+### 2. Security & Workspace Isolation
+**Challenge**: Allowing an AI to manage files poses security risks.
+**Solution**: All file operations are restricted to a dedicated `aura_workspace/` directory using strict path validation.
 
-### 3. Fact Extraction Precision
-**Challenge**: Identifying personal facts (e.g., "I love soccer") without catching generic statements.
-**Solution**: Engineered a specialized Fact Extraction prompt using a separate LLM pass that outputs structured JSON for direct database insertion.
+### 3. Mobile Responsiveness in Glassmorphism
+**Challenge**: Maintaining complex CSS blurs and transparency while ensuring usability on small screens.
+**Solution**: Built a custom responsive sidebar with Framer Motion and mobile-first Tailwind utilities.
 
 ---
 
 ## 📈 Roadmap
+- [x] **Autonomous Agency**: Tool use for file/system management.
+- [x] **Mobile Expansion**: Fully responsive dashboard.
+- [x] **Local LLM Integration**: Full migration to Ollama.
 - [ ] **Voice Synthesis**: Local TTS using Piper/Kokoro.
-- [ ] **Physical Form**: Animated Rive/Lottie character that reacts to emotions.
-- [ ] **Mobile App**: Dedicated Flutter-based mobile client.
-- [ ] **Wake Word**: "Hey Aura" activation for hands-free use.
+- [ ] **Vision**: Multi-modal support for image analysis.
 
 ---
 

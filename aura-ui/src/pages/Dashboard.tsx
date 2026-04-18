@@ -47,6 +47,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     }
   };
 
+  const sidebarItems = [
+    { id: 'chat', label: 'Chat Terminal', icon: MessageSquare },
+    { id: 'tasks', label: 'Task Planner', icon: ListTodo },
+    { id: 'memory', label: 'Neural Memory', icon: BrainCircuit },
+    { id: 'stats', label: 'System Stats', icon: Activity },
+  ];
+
   return (
     <div className="flex h-screen w-full bg-cyber-black overflow-hidden text-white font-sans relative">
       {/* Background Dynamic Glow */}

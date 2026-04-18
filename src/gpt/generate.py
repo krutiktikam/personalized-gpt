@@ -3,6 +3,8 @@ import json
 from src.utils.logger import logger
 from config.settings import settings
 
+from src.gpt.tool_handler import TOOL_DESCRIPTIONS
+
 def generate_response(history: list, personality_config: dict, emotion: str = "neutral", user_facts: list = None, context: list = None):
     """
     Generates a high-quality, persona-consistent response using Ollama API.
@@ -13,6 +15,9 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
     # Identify User Name
     user_name = next((f['value'] for f in user_facts if f['category'] == 'name'), "friend")
     other_facts = [f for f in user_facts if f['category'] != 'name']
+
+    # --- TOOLS INSTRUCTION ---
+    tools_str = "\n".join([f"- {t['name']}: {t['description']} (Params: {t['parameters']})" for t in TOOL_DESCRIPTIONS])
 
     # --- STRUCTURED SYSTEM PROMPT (XML STYLE) ---
     system_msg = f"""
@@ -38,6 +43,21 @@ def generate_response(history: list, personality_config: dict, emotion: str = "n
 - Keep responses concise unless giving technical advice.
 - Use Markdown for code or structured data.
 </interaction_rules>
+
+<autonomous_abilities>
+You are connected to a real computer. You have access to these tools:
+{tools_str}
+
+CRITICAL RULES:
+1. To use a tool, you MUST output the exact tag: <call tool="tool_name">{{"param": "value"}}</call>
+2. DO NOT simulate or type out shell commands like "mkdir" or "ls". 
+3. DO NOT pretend you have done it until you receive the "TOOL_EXECUTION_RESULTS" in the next turn.
+4. If you need to create a folder, use the 'create_folder' tool. 
+
+Example:
+User: Create a folder for my logs.
+Aura: <call tool="create_folder">{{"name": "logs"}}</call>
+</autonomous_abilities>
 
 <knowledge_context>
 {chr(10).join([f"- {c}" for c in context]) if context else "No extra context provided."}

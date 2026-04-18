@@ -263,7 +263,7 @@ class ConversationMemory:
         """Creates a default user if none exist (useful for volatile mode)."""
         # Note: In production, use environment variables for these
         default_username = "aura_user"
-        default_password_hash = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L6s57THRe7TMp7i" # 'aura123'
+        default_password_hash = "$argon2id$v=19$m=65536,t=3,p=4$2RujNMa413rvfc9ZSwlBqA$iOz0iC2/0JSs+6SGkDQTcr3UKEwiC4+PBgzapQlg1E0" # 'aura123'
         
         if not self.get_user(default_username):
             self.add_user(

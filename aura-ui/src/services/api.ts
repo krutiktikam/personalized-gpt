@@ -15,13 +15,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Add a response interceptor to handle 401 Unauthorized errors
+// Add a response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    // Only clear token if it's a 401 on a non-login endpoint
+    if (error.response && error.response.status === 401 && !error.config.url.endsWith('/token')) {
       localStorage.removeItem('aura_token');
-      // Redirect to login or reload if token is invalid
       window.location.reload();
     }
     return Promise.reject(error);
